@@ -1,0 +1,9 @@
+# Material Hub - Behind nginx-proxy (no port publishing)
+# Use when served via domain (e.g. mh.fasthub.co.za)
+# docker compose -f docker-compose.deploy.yml -f docker-compose.proxy.yml up -d
+
+services:
+  pwa:
+    ports: []
+    expose:
+      - "80"

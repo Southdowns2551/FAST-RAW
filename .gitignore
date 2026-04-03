@@ -1,0 +1,18 @@
+# Environment variables
+.env
+**/.env
+
+# SSL certificates
+ssl/*.pem
+ssl/*.key
+ssl/*.crt
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# OS files
+.DS_Store
+
+# Cursor editor files
+.cursor/

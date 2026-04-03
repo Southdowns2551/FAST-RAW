@@ -1,0 +1,40 @@
+# Material Hub - Full deployment (PWA + API)
+# Requires: app-network, MySQL on host (sab005)
+# Usage: docker compose -f docker-compose.deploy.yml up -d
+# Access: http://localhost (or server IP) port 80
+
+services:
+  pwa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: material-hub-pwa
+    container_name: material-hub-pwa
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+  api:
+    build: ./server
+    image: material-hub-api
+    container_name: material-hub-api
+    restart: unless-stopped
+    expose:
+      - "3000"
+    env_file:
+      - ./server/.env
+    volumes:
+      - raw-out-uploads:/app/uploads
+    networks:
+      - app-network
+
+volumes:
+  raw-out-uploads:
+
+networks:
+  app-network:
+    external: true

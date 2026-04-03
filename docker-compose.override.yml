@@ -1,0 +1,6 @@
+# Override for deployment behind nginx-proxy (no port mapping)
+# Use: docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d
+
+services:
+  pwa:
+    ports: !reset []

@@ -1,0 +1,8 @@
+# Material Hub PWA - nginx with HTTPS
+# Requires ssl/cert.pem and ssl/key.pem (run ssl/gen-cert.sh first)
+FROM nginx:alpine
+COPY nginx-ssl.conf /etc/nginx/nginx.conf
+COPY index.html manifest.json sw.js auth.js app.js rawIn.js rawOut.js reworkOut.js reworkIn.js settings.js config.js styles.css /usr/share/nginx/html/
+COPY icons /usr/share/nginx/html/icons
+EXPOSE 80 443
+CMD ["nginx", "-g", "daemon off;"]

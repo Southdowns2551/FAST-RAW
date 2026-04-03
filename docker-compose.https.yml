@@ -1,0 +1,45 @@
+# Material Hub - Deployment with HTTPS (SSL)
+# Requires: app-network, MySQL, ssl/cert.pem and ssl/key.pem
+# Generate certs: ./ssl/gen-cert.sh
+# Access: https://<server-ip> or https://<domain>
+
+services:
+  pwa:
+    build:
+      context: .
+      dockerfile: Dockerfile.https
+    image: material-hub-pwa-https
+    container_name: material-hub-pwa
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+  api:
+    build: ./server
+    image: material-hub-api
+    container_name: material-hub-api
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=${DB_USER:-material_hub}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME:-material_hub}
+      - PORT=3000
+    env_file:
+      - ./server/.env
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true

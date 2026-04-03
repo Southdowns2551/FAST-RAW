@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover, user-scalable=yes">
+  <meta name="theme-color" content="#1a237e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="description" content="Material Hub - Material Management Services PWA">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Material Hub">
+  <title>Material Hub</title>
+  <link rel="manifest" href="manifest.json?v=3">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=3">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png?v=3">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png?v=3">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-row">
+      <div>
+        <h1>Material Hub</h1>
+        <p class="tagline">Material Management Services</p>
+      </div>
+      <div class="header-actions">
+        <span id="header-user-name" class="header-user-name hidden"></span>
+        <button id="header-logout-btn" class="header-icon-btn hidden" aria-label="Logout" title="Logout">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+        <button id="header-settings-btn" class="header-icon-btn hidden" aria-label="Settings" data-section="settings">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <section id="panel-setup" class="auth-panel hidden">
+      <div class="auth-card">
+        <h2>Welcome to Material Hub</h2>
+        <p>Create the first admin account to get started.</p>
+        <form id="setup-form" class="auth-form">
+          <div class="form-group">
+            <label for="setup-display-name">Display name</label>
+            <input type="text" id="setup-display-name" placeholder="Your name" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="setup-username">Username</label>
+            <input type="text" id="setup-username" placeholder="Choose a username" maxlength="50" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label for="setup-password">Password</label>
+            <input type="password" id="setup-password" placeholder="Choose a password" minlength="4" autocomplete="new-password" required>
+          </div>
+          <div class="form-group">
+            <label for="setup-confirm">Confirm password</label>
+            <input type="password" id="setup-confirm" placeholder="Confirm password" minlength="4" autocomplete="new-password" required>
+          </div>
+          <p id="setup-error" class="auth-error hidden"></p>
+          <button type="submit" id="setup-submit" class="btn-primary btn-block">Create admin account</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="panel-login" class="auth-panel hidden">
+      <div class="auth-card">
+        <h2>Sign in</h2>
+        <form id="login-form" class="auth-form">
+          <div class="form-group">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" placeholder="Username" maxlength="50" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+          </div>
+          <p id="login-error" class="auth-error hidden"></p>
+          <button type="submit" id="login-submit" class="btn-primary btn-block">Sign in</button>
+        </form>
+      </div>
+    </section>
+
+    <div id="home-grid" class="home-grid hidden">
+      <button class="grid-tile" data-section="raw-in">
+        <svg class="tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="1"/><path d="M3 8l9-5 9 5"/><line x1="12" y1="11" x2="12" y2="18"/><polyline points="8.5 14.5 12 18 15.5 14.5"/></svg>
+        <span class="tile-label">Raw in</span>
+      </button>
+      <button class="grid-tile" data-section="raw-out">
+        <svg class="tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="1"/><path d="M3 8l9-5 9 5"/><line x1="12" y1="18" x2="12" y2="11"/><polyline points="8.5 14.5 12 11 15.5 14.5"/></svg>
+        <span class="tile-label">Raw out</span>
+      </button>
+      <button class="grid-tile" data-section="rework-out">
+        <svg class="tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <span class="tile-label">Rework out</span>
+      </button>
+      <button class="grid-tile" data-section="rework-in">
+        <svg class="tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.12-9.36L1 10"/></svg>
+        <span class="tile-label">Rework in</span>
+      </button>
+      <button class="grid-tile" data-section="internal-rework">
+        <svg class="tile-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7.17 7.91L8.9 8.91L12.08 3.42L14.33 7.31L11.73 8.81L17.19 10.27L18.66 4.81L16.06 6.31L13.81 2.41C13.26 1.45 12.03 1.12 11.08 1.68C10.81 1.83 10.58 2.05 10.41 2.31M10 20V18L3.66 18L5.9 14.1L8.5 15.6L7.04 10.14L1.57 11.6L4.17 13.1L1.92 17C1.37 17.96 1.7 19.18 2.65 19.73C2.92 19.89 3.22 19.97 3.54 20M19.06 11.5L17.32 12.5L20.5 18H16V15L12 19L16 23V20H20.5C21.61 20 22.5 19.11 22.5 18C22.5 17.69 22.42 17.38 22.28 17.11Z"/></svg>
+        <span class="tile-label">Internal rework</span>
+      </button>
+      <button class="grid-tile" data-section="portal">
+        <svg class="tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span class="tile-label">Portal</span>
+      </button>
+    </div>
+
+    <section id="panel-raw-in" class="tab-panel hidden" role="tabpanel">
+      <h2>Raw in</h2>
+      <form id="raw-in-form" class="raw-in-form">
+        <div class="form-row">
+          <button type="button" id="raw-in-start" class="btn-primary">Start</button>
+        </div>
+        <div id="raw-in-session" class="raw-in-session hidden">
+          <div class="form-group">
+            <label>Date & time</label>
+            <output id="raw-in-started-at" class="form-output">—</output>
+          </div>
+          <div class="form-group">
+            <label>Location (street / area)</label>
+            <output id="raw-in-location" class="form-output">—</output>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-supplier">Supplier</label>
+            <select id="raw-in-supplier" name="supplier" required>
+              <option value="">Select supplier</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-transporter">Transporter</label>
+            <select id="raw-in-transporter" name="transporter" required>
+              <option value="">Select transporter</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-grades-count">Number of grades received</label>
+            <select id="raw-in-grades-count" name="grades_count">
+              <option value="0">—</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+          <div id="raw-in-grades-container" class="grades-container hidden"></div>
+          <div class="form-group">
+            <label for="raw-in-vehicle-reg">Vehicle registration</label>
+            <div class="input-with-action">
+              <input type="text" id="raw-in-vehicle-reg" name="vehicle_registration" placeholder="e.g. ABC 123 GP" maxlength="20" required>
+              <button type="button" id="raw-in-scan-reg" class="btn-secondary">Scan with camera</button>
+            </div>
+            <div id="raw-in-scan-preview" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-vehicle-state">Vehicle state</label>
+            <select id="raw-in-vehicle-state" name="vehicle_state" required>
+              <option value="">Select</option>
+              <option value="clean">Clean</option>
+              <option value="dirty">Dirty</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-damaged-bags">Damaged bags</label>
+            <select id="raw-in-damaged-bags" name="damaged_bags" required>
+              <option value="">Select</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-pallets-wrapped">Pallets wrapped and covered</label>
+            <select id="raw-in-pallets-wrapped" name="pallets_wrapped" required>
+              <option value="">Select</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-driver-name">Driver name</label>
+            <input type="text" id="raw-in-driver-name" name="driver_name" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-invoice-number">Invoice number</label>
+            <input type="text" id="raw-in-invoice-number" name="invoice_number" maxlength="50" required>
+          </div>
+          <div class="form-group">
+            <label>Image of invoice / delivery note</label>
+            <div id="raw-in-invoice-image-preview" class="load-images-grid"></div>
+            <button type="button" id="raw-in-capture-invoice" class="btn-secondary">Take photo</button>
+            <div id="raw-in-invoice-capture-area" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-additional-comments">Additional comments</label>
+            <textarea id="raw-in-additional-comments" name="additional_comments" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="raw-in-checked-by">Checked by</label>
+            <input type="text" id="raw-in-checked-by" name="checked_by" maxlength="100" required>
+          </div>
+          <div class="form-row">
+            <button type="submit" id="raw-in-completed" class="btn-primary">Completed</button>
+          </div>
+        </div>
+      </form>
+    </section>
+    <section id="panel-raw-out" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-raw-out">
+      <h2>Raw out</h2>
+      <form id="raw-out-form" class="raw-in-form">
+        <div class="form-row">
+          <button type="button" id="raw-out-start" class="btn-primary">Start</button>
+        </div>
+        <div id="raw-out-session" class="raw-in-session hidden">
+          <div class="form-group">
+            <label>Date & time</label>
+            <output id="raw-out-started-at" class="form-output">—</output>
+          </div>
+          <div class="form-group">
+            <label>Location (street / area)</label>
+            <output id="raw-out-location" class="form-output">—</output>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-customer-name">Customer name</label>
+            <input type="text" id="raw-out-customer-name" name="customer_name" placeholder="Enter customer name" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-transporter">Transporter</label>
+            <select id="raw-out-transporter" name="transporter" required>
+              <option value="">Select transporter</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-reason">Reason for material out</label>
+            <select id="raw-out-reason" name="reason_for_material_out" required>
+              <option value="">Select reason</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-grades-count">Number of grades sent</label>
+            <select id="raw-out-grades-count" name="grades_count">
+              <option value="0">—</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <div id="raw-out-grades-container" class="grades-container hidden"></div>
+          <div class="form-group">
+            <label for="raw-out-vehicle-reg">Vehicle registration</label>
+            <div class="input-with-action">
+              <input type="text" id="raw-out-vehicle-reg" name="vehicle_registration" placeholder="e.g. ABC 123 GP" maxlength="20" required>
+              <button type="button" id="raw-out-scan-reg" class="btn-secondary">Scan with camera</button>
+            </div>
+            <div id="raw-out-scan-preview" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label>Image of load <span class="field-hint">(min 1, max 4)</span></label>
+            <div id="raw-out-load-images" class="load-images-grid"></div>
+            <button type="button" id="raw-out-capture-load" class="btn-secondary">Take photo</button>
+            <div id="raw-out-capture-preview" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-vehicle-state">Vehicle state</label>
+            <select id="raw-out-vehicle-state" name="vehicle_state" required>
+              <option value="">Select</option>
+              <option value="clean">Clean</option>
+              <option value="dirty">Dirty</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-damaged-bags">Damaged bags</label>
+            <select id="raw-out-damaged-bags" name="damaged_bags" required>
+              <option value="">Select</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-pallets-wrapped">Pallets wrapped and covered</label>
+            <select id="raw-out-pallets-wrapped" name="pallets_wrapped" required>
+              <option value="">Select</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-driver-name">Driver name</label>
+            <input type="text" id="raw-out-driver-name" name="driver_name" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-invoice-number">Invoice number # or Delivery note #</label>
+            <input type="text" id="raw-out-invoice-number" name="invoice_number" maxlength="50" required>
+          </div>
+          <div class="form-group">
+            <label>Image of invoice / delivery note</label>
+            <div id="raw-out-invoice-image-preview" class="load-images-grid"></div>
+            <button type="button" id="raw-out-capture-invoice" class="btn-secondary">Take photo</button>
+            <div id="raw-out-invoice-capture-area" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-additional-comments">Additional comments</label>
+            <textarea id="raw-out-additional-comments" name="additional_comments" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="raw-out-checked-by">Checked by</label>
+            <input type="text" id="raw-out-checked-by" name="checked_by" maxlength="100" required>
+          </div>
+          <div class="form-row">
+            <button type="submit" id="raw-out-completed" class="btn-primary">Completed</button>
+          </div>
+        </div>
+      </form>
+    </section>
+    <section id="panel-rework-out" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-rework-out">
+      <h2>Rework out</h2>
+      <form id="rework-out-form" class="raw-in-form">
+        <div class="form-row">
+          <button type="button" id="rework-out-start" class="btn-primary">Start</button>
+        </div>
+        <div id="rework-out-session" class="raw-in-session hidden">
+          <div class="form-group">
+            <label>Date &amp; time</label>
+            <output id="rework-out-started-at" class="form-output">—</output>
+          </div>
+          <div class="form-group">
+            <label>Location (street / area)</label>
+            <output id="rework-out-location" class="form-output">—</output>
+          </div>
+          <div class="form-group">
+            <label for="rework-out-recycler-name">Name of recycler</label>
+            <input type="text" id="rework-out-recycler-name" name="recycler_name" placeholder="Enter name of recycler" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="rework-out-grades-count">Number of grades sent</label>
+            <select id="rework-out-grades-count" name="grades_count">
+              <option value="0">—</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <div id="rework-out-grades-container" class="grades-container hidden"></div>
+          <div class="form-group">
+            <label for="rework-out-vehicle-reg">Vehicle registration</label>
+            <div class="input-with-action">
+              <input type="text" id="rework-out-vehicle-reg" name="vehicle_registration" placeholder="e.g. ABC 123 GP" maxlength="20" required>
+              <button type="button" id="rework-out-scan-reg" class="btn-secondary">Scan with camera</button>
+            </div>
+            <div id="rework-out-scan-preview" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label>Image of load <span class="field-hint">(min 1, max 4)</span></label>
+            <div id="rework-out-load-images" class="load-images-grid"></div>
+            <button type="button" id="rework-out-capture-load" class="btn-secondary">Take photo</button>
+            <div id="rework-out-capture-preview" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label for="rework-out-driver-name">Driver name</label>
+            <input type="text" id="rework-out-driver-name" name="driver_name" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="rework-out-invoice-number">Invoice number # or Delivery note #</label>
+            <input type="text" id="rework-out-invoice-number" name="invoice_number" maxlength="50" required>
+          </div>
+          <div class="form-group">
+            <label>Image of invoice / delivery note</label>
+            <div id="rework-out-invoice-image-preview" class="load-images-grid"></div>
+            <button type="button" id="rework-out-capture-invoice" class="btn-secondary">Take photo</button>
+            <div id="rework-out-invoice-capture-area" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label for="rework-out-additional-comments">Additional comments</label>
+            <textarea id="rework-out-additional-comments" name="additional_comments" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="rework-out-checked-by">Checked by</label>
+            <input type="text" id="rework-out-checked-by" name="checked_by" maxlength="100" required>
+          </div>
+          <div class="form-row">
+            <button type="submit" id="rework-out-completed" class="btn-primary">Completed</button>
+          </div>
+        </div>
+      </form>
+    </section>
+    <section id="panel-rework-in" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-rework-in">
+      <h2>Rework in</h2>
+      <form id="rework-in-form" class="raw-in-form">
+        <div class="form-row">
+          <button type="button" id="rework-in-start" class="btn-primary">Start</button>
+        </div>
+        <div id="rework-in-session" class="raw-in-session hidden">
+          <div class="form-group">
+            <label>Date &amp; time</label>
+            <output id="rework-in-started-at" class="form-output">—</output>
+          </div>
+          <div class="form-group">
+            <label>Location (street / area)</label>
+            <output id="rework-in-location" class="form-output">—</output>
+          </div>
+          <div class="form-group">
+            <label for="rework-in-recycler-name">Name of recycler</label>
+            <input type="text" id="rework-in-recycler-name" name="recycler_name" placeholder="Enter name of recycler" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="rework-in-grades-count">Number of grades received</label>
+            <select id="rework-in-grades-count" name="grades_count">
+              <option value="0">—</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <div id="rework-in-grades-container" class="grades-container hidden"></div>
+          <div class="form-group">
+            <label for="rework-in-vehicle-reg">Vehicle registration</label>
+            <div class="input-with-action">
+              <input type="text" id="rework-in-vehicle-reg" name="vehicle_registration" placeholder="e.g. ABC 123 GP" maxlength="20" required>
+              <button type="button" id="rework-in-scan-reg" class="btn-secondary">Scan with camera</button>
+            </div>
+            <div id="rework-in-scan-preview" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label>Image of load <span class="field-hint">(min 1, max 4)</span></label>
+            <div id="rework-in-load-images" class="load-images-grid"></div>
+            <button type="button" id="rework-in-capture-load" class="btn-secondary">Take photo</button>
+            <div id="rework-in-capture-preview" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label for="rework-in-driver-name">Driver name</label>
+            <input type="text" id="rework-in-driver-name" name="driver_name" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="rework-in-invoice-number">Invoice number # or Delivery note #</label>
+            <input type="text" id="rework-in-invoice-number" name="invoice_number" maxlength="50" required>
+          </div>
+          <div class="form-group">
+            <label>Image of invoice / delivery note</label>
+            <div id="rework-in-invoice-image-preview" class="load-images-grid"></div>
+            <button type="button" id="rework-in-capture-invoice" class="btn-secondary">Take photo</button>
+            <div id="rework-in-invoice-capture-area" class="scan-preview hidden"></div>
+          </div>
+          <div class="form-group">
+            <label for="rework-in-additional-comments">Additional comments</label>
+            <textarea id="rework-in-additional-comments" name="additional_comments" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="rework-in-checked-by">Checked by</label>
+            <input type="text" id="rework-in-checked-by" name="checked_by" maxlength="100" required>
+          </div>
+          <div class="form-row">
+            <button type="submit" id="rework-in-completed" class="btn-primary">Completed</button>
+          </div>
+        </div>
+      </form>
+    </section>
+    <section id="panel-internal-rework" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-internal-rework">
+      <h2>Internal rework</h2>
+      <p>Track internal rework processes.</p>
+    </section>
+    <section id="panel-settings" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-settings">
+      <h2>Settings</h2>
+
+      <nav class="settings-nav" id="settings-nav">
+        <span class="settings-nav-category">Data</span>
+        <ul class="settings-nav-list">
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-suppliers"><span>Suppliers</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-transporters"><span>Transporters</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-grades"><span>Material grades</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-masterbatch-grades"><span>Masterbatch grades</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-rework-grades"><span>Rework grades</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-reasons"><span>Reasons for material out</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+        </ul>
+        <span class="settings-nav-category">System</span>
+        <ul class="settings-nav-list">
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-anpr"><span>Plate Recognizer (ANPR)</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-users"><span>User Management</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+          <li><button type="button" class="settings-nav-item" data-target="settings-detail-backup"><span>Backup &amp; Restore</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></li>
+        </ul>
+      </nav>
+
+      <div class="settings-detail hidden" id="settings-detail-suppliers">
+        <button type="button" class="settings-back" id="settings-back-suppliers"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>Suppliers</h3>
+          <div class="settings-add">
+            <input type="text" id="settings-supplier-input" placeholder="Add supplier name" maxlength="100">
+            <button type="button" id="settings-supplier-add" class="btn-secondary">Add</button>
+          </div>
+          <ul id="settings-supplier-list" class="settings-list"></ul>
+        </div>
+      </div>
+
+      <div class="settings-detail hidden" id="settings-detail-transporters">
+        <button type="button" class="settings-back" id="settings-back-transporters"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>Transporters</h3>
+          <div class="settings-add">
+            <input type="text" id="settings-transporter-input" placeholder="Add transporter name" maxlength="100">
+            <button type="button" id="settings-transporter-add" class="btn-secondary">Add</button>
+          </div>
+          <ul id="settings-transporter-list" class="settings-list"></ul>
+        </div>
+      </div>
+
+      <div class="settings-detail hidden" id="settings-detail-grades">
+        <button type="button" class="settings-back" id="settings-back-grades"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>Material grades</h3>
+          <div class="settings-add">
+            <input type="text" id="settings-grade-input" placeholder="Add material grade (e.g. Grade A)" maxlength="100">
+            <button type="button" id="settings-grade-add" class="btn-secondary">Add</button>
+          </div>
+          <ul id="settings-grade-list" class="settings-list"></ul>
+        </div>
+      </div>
+
+      <div class="settings-detail hidden" id="settings-detail-masterbatch-grades">
+        <button type="button" class="settings-back" id="settings-back-masterbatch-grades"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>Masterbatch grades</h3>
+          <div class="settings-add">
+            <input type="text" id="settings-masterbatch-grade-input" placeholder="Add masterbatch grade" maxlength="100">
+            <button type="button" id="settings-masterbatch-grade-add" class="btn-secondary">Add</button>
+          </div>
+          <ul id="settings-masterbatch-grade-list" class="settings-list"></ul>
+        </div>
+      </div>
+
+      <div class="settings-detail hidden" id="settings-detail-rework-grades">
+        <button type="button" class="settings-back" id="settings-back-rework-grades"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>Rework grades</h3>
+          <div class="settings-add">
+            <input type="text" id="settings-rework-grade-input" placeholder="Add rework grade" maxlength="100">
+            <button type="button" id="settings-rework-grade-add" class="btn-secondary">Add</button>
+          </div>
+          <ul id="settings-rework-grade-list" class="settings-list"></ul>
+        </div>
+      </div>
+
+      <div class="settings-detail hidden" id="settings-detail-reasons">
+        <button type="button" class="settings-back" id="settings-back-reasons"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>Reasons for material out</h3>
+          <div class="settings-add">
+            <input type="text" id="settings-reason-input" placeholder="Add reason for material out" maxlength="255">
+            <button type="button" id="settings-reason-add" class="btn-secondary">Add</button>
+          </div>
+          <ul id="settings-reason-list" class="settings-list"></ul>
+        </div>
+      </div>
+
+      <div class="settings-detail hidden" id="settings-detail-anpr">
+        <button type="button" class="settings-back" id="settings-back-anpr"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>Plate Recognizer (ANPR)</h3>
+          <p class="settings-hint">API key for license plate recognition. <a href="https://app.platerecognizer.com/accounts/signup/" target="_blank" rel="noopener">Sign up free</a> (2,500/month). Leave blank to use OCR fallback.</p>
+          <div class="settings-add">
+            <input type="password" id="settings-anpr-key" placeholder="API token (optional)" maxlength="200">
+            <button type="button" id="settings-anpr-save" class="btn-secondary">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-detail hidden" id="settings-detail-users">
+        <button type="button" class="settings-back" id="settings-back-users"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>User Management</h3>
+          <div class="settings-add settings-add-vertical">
+            <input type="text" id="settings-user-display" placeholder="Display name" maxlength="100">
+            <input type="text" id="settings-user-username" placeholder="Username" maxlength="50">
+            <input type="password" id="settings-user-password" placeholder="Password" maxlength="100">
+            <select id="settings-user-role">
+              <option value="user">User</option>
+              <option value="viewer">Viewer</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button type="button" id="settings-user-add" class="btn-secondary">Add user</button>
+          </div>
+          <ul id="settings-user-list" class="settings-list"></ul>
+        </div>
+      </div>
+
+      <div class="settings-detail hidden" id="settings-detail-backup">
+        <button type="button" class="settings-back" id="settings-back-backup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Settings</button>
+        <div class="settings-detail-card">
+          <h3>Backup &amp; Restore</h3>
+          <p class="settings-hint">Backup all settings (suppliers, transporters, grades, reasons, ANPR key) to a file. Restore replaces current settings with the backup.</p>
+          <div class="settings-add">
+            <button type="button" id="settings-backup-btn" class="btn-secondary">Backup settings</button>
+            <button type="button" id="settings-restore-btn" class="btn-secondary">Restore settings</button>
+            <input type="file" id="settings-restore-input" accept=".json,application/json" class="hidden" aria-hidden="true">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-portal" class="tab-panel hidden" role="tabpanel">
+      <h2>Portal</h2>
+      <div class="portal-filters">
+        <div class="portal-filter-row">
+          <div class="portal-filter-group">
+            <label for="portal-type">Type</label>
+            <select id="portal-type">
+              <option value="all">All</option>
+              <option value="raw_in">Raw In</option>
+              <option value="raw_out">Raw Out</option>
+              <option value="rework_in">Rework In</option>
+              <option value="rework_out">Rework Out</option>
+            </select>
+          </div>
+          <div class="portal-filter-group">
+            <label for="portal-from">From</label>
+            <input type="date" id="portal-from">
+          </div>
+          <div class="portal-filter-group">
+            <label for="portal-to">To</label>
+            <input type="date" id="portal-to">
+          </div>
+        </div>
+        <div class="portal-filter-row">
+          <div class="portal-filter-group portal-filter-grow">
+            <label for="portal-supplier">Supplier / Customer / Recycler</label>
+            <input type="text" id="portal-supplier" placeholder="Search by name...">
+          </div>
+          <div class="portal-filter-group">
+            <label for="portal-grade">Grade</label>
+            <select id="portal-grade">
+              <option value="">All grades</option>
+            </select>
+          </div>
+          <div class="portal-filter-group portal-filter-btn-wrap">
+            <button type="button" id="portal-search" class="btn-primary">Search</button>
+          </div>
+        </div>
+      </div>
+      <div id="portal-results" class="portal-results">
+        <p class="portal-empty">Use the filters above to search submissions.</p>
+      </div>
+      <div id="portal-pagination" class="portal-pagination hidden">
+        <button type="button" id="portal-prev" class="btn-secondary" disabled>Previous</button>
+        <span id="portal-page-info" class="portal-page-info">Page 1</span>
+        <button type="button" id="portal-next" class="btn-secondary" disabled>Next</button>
+      </div>
+    </section>
+
+    <div id="portal-detail-modal" class="portal-modal hidden">
+      <div class="portal-modal-content">
+        <div class="portal-modal-header">
+          <h3 id="portal-detail-title">Submission Detail</h3>
+          <button type="button" id="portal-detail-close" class="portal-modal-close" aria-label="Close">&times;</button>
+        </div>
+        <div id="portal-detail-body" class="portal-modal-body"></div>
+        <div class="portal-modal-footer">
+          <button type="button" id="portal-detail-pdf" class="btn-primary">Download PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="portal-lightbox" class="portal-lightbox hidden">
+      <button type="button" id="portal-lightbox-close" class="portal-lightbox-close" aria-label="Close">&times;</button>
+      <img id="portal-lightbox-img" src="" alt="Full size image">
+    </div>
+
+    <section class="status" aria-live="polite">
+      <div id="connection-status" class="badge offline">Offline</div>
+      <div id="install-prompt" class="install-prompt hidden">
+        <button id="install-btn" class="btn-primary">Install App</button>
+      </div>
+      <div id="install-ios-hint" class="install-prompt install-ios-hint hidden">
+        <span>To install: tap <strong>Share</strong> <span aria-hidden="true">(□↑)</span> then <strong>Add to Home Screen</strong></span>
+      </div>
+    </section>
+  </main>
+
+  <nav id="bottom-nav" class="bottom-nav hidden" aria-label="Navigation">
+    <button id="bottom-home-btn" class="bottom-nav-btn" aria-label="Home">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </button>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
+  <script src="settings.js"></script>
+  <script src="rawIn.js"></script>
+  <script src="rawOut.js"></script>
+  <script src="reworkOut.js"></script>
+  <script src="reworkIn.js"></script>
+  <script src="portal.js"></script>
+</body>
+</html>

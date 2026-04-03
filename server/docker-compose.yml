@@ -1,0 +1,26 @@
+# Material Hub API - runs on app-network to reach MySQL
+# Deploy under /opt/docker/material-hub/ on sab005
+# Ensure .env exists with DB_PASSWORD
+
+services:
+  api:
+    build: .
+    container_name: material-hub-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=${DB_USER:-material_hub}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME:-material_hub}
+      - PORT=3000
+    env_file:
+      - .env
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true
