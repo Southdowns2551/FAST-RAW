@@ -25,7 +25,8 @@
   const captureInvoiceBtn = document.getElementById('raw-in-capture-invoice');
   const invoiceCaptureArea = document.getElementById('raw-in-invoice-capture-area');
 
-  let invoiceImage = null;
+  const MAX_INVOICE_IMAGES = 5;
+  let invoiceImages = [];
 
   let sessionData = {
     started_at: null,
@@ -148,76 +149,24 @@
 
   /**
    * Captures image from camera and runs ANPR (or OCR fallback) for registration text.
-   * Side effect: shows camera preview, updates vehicle registration input.
+   * Uses shared fullscreen camera module.
+   * Side effect: opens camera overlay, updates vehicle registration input.
    */
   async function handleScan() {
     if (!scanBtn || !vehicleRegInput) return;
     scanBtn.disabled = true;
     scanBtn.textContent = 'Loading…';
     scanPreview.classList.remove('hidden');
-    scanPreview.innerHTML = '<p>Starting camera…</p>';
+    scanPreview.innerHTML = '<p>Opening camera…</p>';
 
-    try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
-        });
-      } catch (e) {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: false
-        });
-      }
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.muted = true;
-      video.setAttribute('playsinline', '');
-      video.style.display = 'block';
-      video.style.maxWidth = '100%';
-      scanPreview.innerHTML = '';
-      scanPreview.appendChild(video);
-
-      const captureBtn = document.createElement('button');
-      captureBtn.type = 'button';
-      captureBtn.className = 'btn-primary';
-      captureBtn.textContent = 'Capture & read';
-      const cancelBtn = document.createElement('button');
-      cancelBtn.type = 'button';
-      cancelBtn.className = 'btn-secondary';
-      cancelBtn.textContent = 'Cancel';
-
-      const actions = document.createElement('div');
-      actions.className = 'scan-actions';
-      actions.appendChild(captureBtn);
-      actions.appendChild(cancelBtn);
-      scanPreview.appendChild(actions);
-
-      await new Promise((r) => { video.onloadedmetadata = r; });
-      try { await video.play(); } catch (_) {}
-
-      cancelBtn.addEventListener('click', () => {
-        stream.getTracks().forEach((t) => t.stop());
-        scanPreview.classList.add('hidden');
-        scanPreview.innerHTML = '';
-        scanBtn.disabled = false;
-        scanBtn.textContent = 'Scan with camera';
-      });
-
-      captureBtn.addEventListener('click', async () => {
-        captureBtn.disabled = true;
-        captureBtn.textContent = 'Reading…';
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        stream.getTracks().forEach((t) => t.stop());
-
-        let plate = null;
+    const cam = window.MATERIAL_HUB_CAMERA;
+    await cam.openCamera({
+      mode: 'single',
+      maxDim: 1280,
+      quality: 0.9,
+      onPhoto: async function (_dataUri, canvas) {
         scanPreview.innerHTML = '<p>Running ANPR…</p>';
+        let plate = null;
         const blob = await new Promise((cb) => canvas.toBlob(cb, 'image/jpeg', 0.9));
         if (blob && navigator.onLine) {
           plate = await recognizePlateAnpr(blob);
@@ -231,12 +180,15 @@
         scanPreview.innerHTML = '';
         scanBtn.disabled = false;
         scanBtn.textContent = 'Scan with camera';
-      });
-    } catch (err) {
-      scanPreview.innerHTML = '<p>Camera access denied or unavailable.</p>';
-      scanBtn.disabled = false;
-      scanBtn.textContent = 'Scan with camera';
-    }
+      },
+      onCancel: function () {
+        scanPreview.classList.add('hidden');
+        scanPreview.innerHTML = '';
+        scanBtn.disabled = false;
+        scanBtn.textContent = 'Scan with camera';
+      },
+      onDone: function () {}
+    });
   }
 
   /**
@@ -386,139 +338,62 @@
   }
 
   /**
-   * Resizes an image canvas to max dimension, returns JPEG base64 data URI.
-   * @param {HTMLCanvasElement} srcCanvas
-   * @param {number} maxDim - Maximum width or height in pixels
-   * @param {number} quality - JPEG quality 0-1
-   * @returns {string} data URI (data:image/jpeg;base64,...)
-   */
-  function resizeImage(srcCanvas, maxDim, quality) {
-    let w = srcCanvas.width;
-    let h = srcCanvas.height;
-    if (w > maxDim || h > maxDim) {
-      const ratio = Math.min(maxDim / w, maxDim / h);
-      w = Math.round(w * ratio);
-      h = Math.round(h * ratio);
-    }
-    const out = document.createElement('canvas');
-    out.width = w;
-    out.height = h;
-    out.getContext('2d').drawImage(srcCanvas, 0, 0, w, h);
-    return out.toDataURL('image/jpeg', quality);
-  }
-
-  /**
-   * Renders a thumbnail preview of the captured invoice image with a remove button.
-   * Shows the capture button again when the image is removed.
+   * Renders thumbnail grid of captured invoice images with remove buttons.
+   * Tap on thumbnail to view fullscreen. Hides capture button when max reached.
    * Side effect: mutates DOM.
    */
   function renderInvoiceImagePreview() {
     if (!invoicePreviewEl) return;
     invoicePreviewEl.innerHTML = '';
-    if (invoiceImage) {
+    invoiceImages.forEach((dataUri, idx) => {
       const wrapper = document.createElement('div');
       wrapper.className = 'load-img-wrapper';
       const img = document.createElement('img');
-      img.src = invoiceImage;
+      img.src = dataUri;
       img.className = 'load-img-thumb';
-      img.alt = 'Invoice / delivery note image';
+      img.alt = 'Invoice image ' + (idx + 1);
+      img.addEventListener('click', () => {
+        if (window.MATERIAL_HUB_LIGHTBOX) window.MATERIAL_HUB_LIGHTBOX.show(dataUri);
+      });
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'load-img-remove';
       removeBtn.textContent = '×';
-      removeBtn.setAttribute('aria-label', 'Remove invoice image');
+      removeBtn.setAttribute('aria-label', 'Remove invoice image ' + (idx + 1));
       removeBtn.addEventListener('click', () => {
-        invoiceImage = null;
+        invoiceImages.splice(idx, 1);
         renderInvoiceImagePreview();
       });
       wrapper.appendChild(img);
       wrapper.appendChild(removeBtn);
       invoicePreviewEl.appendChild(wrapper);
-    }
+    });
     if (captureInvoiceBtn) {
-      captureInvoiceBtn.classList.toggle('hidden', !!invoiceImage);
+      captureInvoiceBtn.classList.toggle('hidden', invoiceImages.length >= MAX_INVOICE_IMAGES);
     }
   }
 
   /**
-   * Opens device camera to capture a single invoice / delivery note photo.
-   * Resizes to 1200px max, stores as base64 data URI in invoiceImage.
-   * Side effect: camera preview UI, updates invoiceImage.
+   * Opens fullscreen camera to capture invoice / delivery note photos (up to 5).
+   * Uses shared camera module in multi-photo mode.
+   * Side effect: opens camera overlay, updates invoiceImages array.
    */
   async function handleCaptureInvoice() {
-    if (!captureInvoiceBtn || invoiceImage) return;
-    captureInvoiceBtn.disabled = true;
-    captureInvoiceBtn.textContent = 'Opening camera…';
-    invoiceCaptureArea.classList.remove('hidden');
-    invoiceCaptureArea.innerHTML = '<p>Starting camera…</p>';
-    invoiceCaptureArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (!captureInvoiceBtn || invoiceImages.length >= MAX_INVOICE_IMAGES) return;
 
-    try {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } },
-          audio: false
-        });
-      } catch (e) {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: false
-        });
-      }
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.muted = true;
-      video.setAttribute('playsinline', '');
-      video.style.display = 'block';
-      video.style.maxWidth = '100%';
-      invoiceCaptureArea.innerHTML = '';
-      invoiceCaptureArea.appendChild(video);
-
-      const snapBtn = document.createElement('button');
-      snapBtn.type = 'button';
-      snapBtn.className = 'btn-primary';
-      snapBtn.textContent = 'Capture';
-      const cancelBtn = document.createElement('button');
-      cancelBtn.type = 'button';
-      cancelBtn.className = 'btn-secondary';
-      cancelBtn.textContent = 'Cancel';
-
-      const actions = document.createElement('div');
-      actions.className = 'scan-actions';
-      actions.appendChild(snapBtn);
-      actions.appendChild(cancelBtn);
-      invoiceCaptureArea.appendChild(actions);
-
-      await new Promise((r) => { video.onloadedmetadata = r; });
-      try { await video.play(); } catch (_) {}
-
-      const cleanup = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        invoiceCaptureArea.classList.add('hidden');
-        invoiceCaptureArea.innerHTML = '';
-        captureInvoiceBtn.disabled = false;
-        captureInvoiceBtn.textContent = 'Take photo';
-      };
-
-      cancelBtn.addEventListener('click', cleanup);
-
-      snapBtn.addEventListener('click', () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        invoiceImage = resizeImage(canvas, 1200, 0.7);
+    const cam = window.MATERIAL_HUB_CAMERA;
+    await cam.openCamera({
+      mode: 'multi',
+      maxPhotos: MAX_INVOICE_IMAGES - invoiceImages.length,
+      maxDim: 1200,
+      quality: 0.7,
+      onPhoto: function (dataUri) {
+        invoiceImages.push(dataUri);
         renderInvoiceImagePreview();
-        cleanup();
-      });
-    } catch (err) {
-      invoiceCaptureArea.innerHTML = '<p>Camera access denied or unavailable.</p>';
-      captureInvoiceBtn.disabled = false;
-      captureInvoiceBtn.textContent = 'Take photo';
-    }
+      },
+      onCancel: function () {},
+      onDone: function () {}
+    });
   }
 
   /**
@@ -546,7 +421,7 @@
       pallets_wrapped: form.elements.pallets_wrapped?.value || null,
       driver_name: form.elements.driver_name?.value?.trim() || null,
       invoice_number: form.elements.invoice_number?.value?.trim() || null,
-      invoice_image: invoiceImage ? (invoiceImage.startsWith('data:image/jpeg;base64,') ? invoiceImage.slice('data:image/jpeg;base64,'.length) : invoiceImage) : null,
+      invoice_images: invoiceImages.map((uri) => uri.startsWith('data:image/jpeg;base64,') ? uri.slice('data:image/jpeg;base64,'.length) : uri),
       additional_comments: form.elements.additional_comments?.value?.trim() || null,
       checked_by: form.elements.checked_by?.value?.trim() || null,
       completed_at: toISODateTime(new Date())
@@ -567,7 +442,7 @@
 
       alert('Submission saved. Report sent to reports@italpac.co.za');
       form.reset();
-      invoiceImage = null;
+      invoiceImages = [];
       renderInvoiceImagePreview();
       refreshGradesDropdowns();
       sessionEl.classList.add('hidden');

@@ -10,6 +10,7 @@ const nodemailer = require('nodemailer');
 const { buildRawInHtml, buildRawOutHtml, buildReworkOutHtml, buildReworkInHtml } = require('./reportHtml');
 
 const REPORT_TO = 'reports@italpac.co.za';
+const REPORT_FROM_NAME = 'Material Hub Report';
 
 /**
  * Creates a nodemailer transporter from env vars, or null if not configured.
@@ -32,36 +33,40 @@ function getTransporter() {
 /**
  * Builds image attachments array from file paths.
  * @param {string[]} [imagePaths] - absolute paths to load images
- * @param {string|null} [invoiceImagePath] - absolute path to invoice image
+ * @param {string[]} [invoiceImagePaths] - absolute paths to invoice images
  * @returns {Array}
  */
-function buildAttachments(imagePaths, invoiceImagePath) {
+function buildAttachments(imagePaths, invoiceImagePaths) {
   const attachments = (imagePaths || []).map((filePath, idx) => ({
     filename: `load_image_${idx + 1}.jpg`,
     path: filePath,
     contentType: 'image/jpeg'
   }));
-  if (invoiceImagePath) {
-    attachments.push({ filename: 'invoice_document.jpg', path: invoiceImagePath, contentType: 'image/jpeg' });
-  }
+  (invoiceImagePaths || []).forEach((filePath, idx) => {
+    attachments.push({
+      filename: `invoice_document_${idx + 1}.jpg`,
+      path: filePath,
+      contentType: 'image/jpeg'
+    });
+  });
   return attachments;
 }
 
 /**
- * Sends Raw In report email with optional invoice image attachment.
+ * Sends Raw In report email with optional invoice image attachments.
  * @param {Object} row - Raw In record
- * @param {string|null} [invoiceImagePath] - Absolute path to invoice image on disk
+ * @param {string[]} [invoiceImagePaths] - Absolute paths to invoice images on disk
  * @returns {Promise<void>}
  */
-async function sendRawInReport(row, invoiceImagePath) {
+async function sendRawInReport(row, invoiceImagePaths) {
   const transporter = getTransporter();
   if (!transporter) {
     console.log('[Email] SMTP not configured. Report (id=%s) would be sent to %s', row.id, REPORT_TO);
     return;
   }
-  const attachments = buildAttachments([], invoiceImagePath);
+  const attachments = buildAttachments([], invoiceImagePaths);
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    from: `"${REPORT_FROM_NAME}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to: REPORT_TO,
     subject: `Material Hub Raw In Report #${row.id}`,
     html: buildRawInHtml(row),
@@ -71,21 +76,21 @@ async function sendRawInReport(row, invoiceImagePath) {
 }
 
 /**
- * Sends Raw Out report email with load images and optional invoice image.
+ * Sends Raw Out report email with load images and optional invoice images.
  * @param {Object} row - Raw Out record
  * @param {string[]} [imagePaths]
- * @param {string|null} [invoiceImagePath]
+ * @param {string[]} [invoiceImagePaths]
  * @returns {Promise<void>}
  */
-async function sendRawOutReport(row, imagePaths, invoiceImagePath) {
+async function sendRawOutReport(row, imagePaths, invoiceImagePaths) {
   const transporter = getTransporter();
   if (!transporter) {
     console.log('[Email] SMTP not configured. Raw Out report (id=%s) would be sent to %s', row.id, REPORT_TO);
     return;
   }
-  const attachments = buildAttachments(imagePaths, invoiceImagePath);
+  const attachments = buildAttachments(imagePaths, invoiceImagePaths);
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    from: `"${REPORT_FROM_NAME}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to: REPORT_TO,
     subject: `Material Hub Raw Out Report #${row.id}`,
     html: buildRawOutHtml(row),
@@ -95,21 +100,21 @@ async function sendRawOutReport(row, imagePaths, invoiceImagePath) {
 }
 
 /**
- * Sends Rework Out report email with load images and optional invoice image.
+ * Sends Rework Out report email with load images and optional invoice images.
  * @param {Object} row - Rework Out record
  * @param {string[]} [imagePaths]
- * @param {string|null} [invoiceImagePath]
+ * @param {string[]} [invoiceImagePaths]
  * @returns {Promise<void>}
  */
-async function sendReworkOutReport(row, imagePaths, invoiceImagePath) {
+async function sendReworkOutReport(row, imagePaths, invoiceImagePaths) {
   const transporter = getTransporter();
   if (!transporter) {
     console.log('[Email] SMTP not configured. Rework Out report (id=%s) would be sent to %s', row.id, REPORT_TO);
     return;
   }
-  const attachments = buildAttachments(imagePaths, invoiceImagePath);
+  const attachments = buildAttachments(imagePaths, invoiceImagePaths);
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    from: `"${REPORT_FROM_NAME}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to: REPORT_TO,
     subject: `Material Hub Rework Out Report #${row.id}`,
     html: buildReworkOutHtml(row),
@@ -119,21 +124,21 @@ async function sendReworkOutReport(row, imagePaths, invoiceImagePath) {
 }
 
 /**
- * Sends Rework In report email with load images and optional invoice image.
+ * Sends Rework In report email with load images and optional invoice images.
  * @param {Object} row - Rework In record
  * @param {string[]} [imagePaths]
- * @param {string|null} [invoiceImagePath]
+ * @param {string[]} [invoiceImagePaths]
  * @returns {Promise<void>}
  */
-async function sendReworkInReport(row, imagePaths, invoiceImagePath) {
+async function sendReworkInReport(row, imagePaths, invoiceImagePaths) {
   const transporter = getTransporter();
   if (!transporter) {
     console.log('[Email] SMTP not configured. Rework In report (id=%s) would be sent to %s', row.id, REPORT_TO);
     return;
   }
-  const attachments = buildAttachments(imagePaths, invoiceImagePath);
+  const attachments = buildAttachments(imagePaths, invoiceImagePaths);
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    from: `"${REPORT_FROM_NAME}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to: REPORT_TO,
     subject: `Material Hub Rework In Report #${row.id}`,
     html: buildReworkInHtml(row),

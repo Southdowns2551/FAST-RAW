@@ -198,7 +198,7 @@
             <input type="text" id="raw-in-invoice-number" name="invoice_number" maxlength="50" required>
           </div>
           <div class="form-group">
-            <label>Image of invoice / delivery note</label>
+            <label>Image of invoice / delivery note <span class="field-hint">(max 5)</span></label>
             <div id="raw-in-invoice-image-preview" class="load-images-grid"></div>
             <button type="button" id="raw-in-capture-invoice" class="btn-secondary">Take photo</button>
             <div id="raw-in-invoice-capture-area" class="scan-preview hidden"></div>
@@ -307,7 +307,7 @@
             <input type="text" id="raw-out-invoice-number" name="invoice_number" maxlength="50" required>
           </div>
           <div class="form-group">
-            <label>Image of invoice / delivery note</label>
+            <label>Image of invoice / delivery note <span class="field-hint">(max 5)</span></label>
             <div id="raw-out-invoice-image-preview" class="load-images-grid"></div>
             <button type="button" id="raw-out-capture-invoice" class="btn-secondary">Take photo</button>
             <div id="raw-out-invoice-capture-area" class="scan-preview hidden"></div>
@@ -380,7 +380,7 @@
             <input type="text" id="rework-out-invoice-number" name="invoice_number" maxlength="50" required>
           </div>
           <div class="form-group">
-            <label>Image of invoice / delivery note</label>
+            <label>Image of invoice / delivery note <span class="field-hint">(max 5)</span></label>
             <div id="rework-out-invoice-image-preview" class="load-images-grid"></div>
             <button type="button" id="rework-out-capture-invoice" class="btn-secondary">Take photo</button>
             <div id="rework-out-invoice-capture-area" class="scan-preview hidden"></div>
@@ -453,7 +453,7 @@
             <input type="text" id="rework-in-invoice-number" name="invoice_number" maxlength="50" required>
           </div>
           <div class="form-group">
-            <label>Image of invoice / delivery note</label>
+            <label>Image of invoice / delivery note <span class="field-hint">(max 5)</span></label>
             <div id="rework-in-invoice-image-preview" class="load-images-grid"></div>
             <button type="button" id="rework-in-capture-invoice" class="btn-secondary">Take photo</button>
             <div id="rework-in-invoice-capture-area" class="scan-preview hidden"></div>
@@ -681,6 +681,31 @@
       <img id="portal-lightbox-img" src="" alt="Full size image">
     </div>
 
+    <div id="camera-overlay" class="camera-overlay hidden">
+      <div class="camera-overlay__viewfinder">
+        <video id="camera-video" class="camera-overlay__video" autoplay playsinline muted></video>
+        <div id="camera-flash" class="camera-overlay__flash"></div>
+        <span id="camera-counter" class="camera-overlay__counter hidden"></span>
+        <button type="button" id="camera-close" class="camera-overlay__close" aria-label="Close camera">&times;</button>
+        <div id="camera-review" class="camera-overlay__review hidden">
+          <img id="camera-review-img" class="camera-overlay__review-img" src="" alt="Captured photo">
+          <div class="camera-overlay__review-actions">
+            <button type="button" id="camera-review-retake" class="camera-review-btn camera-review-btn--retake">Retake</button>
+            <button type="button" id="camera-review-use" class="camera-review-btn camera-review-btn--use">Use Photo</button>
+            <button type="button" id="camera-review-done" class="camera-review-btn camera-review-btn--done hidden">Done</button>
+          </div>
+        </div>
+      </div>
+      <div class="camera-overlay__controls">
+        <button type="button" id="camera-shutter" class="camera-overlay__shutter" aria-label="Take photo"></button>
+      </div>
+    </div>
+
+    <div id="form-lightbox" class="form-lightbox hidden">
+      <button type="button" id="form-lightbox-close" class="form-lightbox__close" aria-label="Close">&times;</button>
+      <img id="form-lightbox-img" src="" alt="Full size image">
+    </div>
+
     <section class="status" aria-live="polite">
       <div id="connection-status" class="badge offline">Offline</div>
       <div id="install-prompt" class="install-prompt hidden">
@@ -703,11 +728,25 @@
   <script src="config.js"></script>
   <script src="auth.js"></script>
   <script src="app.js"></script>
+  <script src="camera.js"></script>
   <script src="settings.js"></script>
   <script src="rawIn.js"></script>
   <script src="rawOut.js"></script>
   <script src="reworkOut.js"></script>
   <script src="reworkIn.js"></script>
   <script src="portal.js"></script>
+  <script>
+  (function(){
+    var lb=document.getElementById('form-lightbox');
+    var lbImg=document.getElementById('form-lightbox-img');
+    var lbClose=document.getElementById('form-lightbox-close');
+    window.MATERIAL_HUB_LIGHTBOX={
+      show:function(src){lbImg.src=src;lb.classList.remove('hidden');document.body.style.overflow='hidden';},
+      hide:function(){lb.classList.add('hidden');lbImg.src='';document.body.style.overflow='';}
+    };
+    lbClose.addEventListener('click',function(){window.MATERIAL_HUB_LIGHTBOX.hide();});
+    lb.addEventListener('click',function(e){if(e.target===lb)window.MATERIAL_HUB_LIGHTBOX.hide();});
+  })();
+  </script>
 </body>
 </html>

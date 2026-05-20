@@ -295,20 +295,20 @@
 
     let imagesHtml = '';
     const loadImgs = parseImages(row.load_images);
-    const invoiceImg = row.invoice_image;
+    const invoiceImgs = parseInvoiceImages(row.invoice_image);
 
-    if (loadImgs.length > 0 || invoiceImg) {
+    if (loadImgs.length > 0 || invoiceImgs.length > 0) {
       imagesHtml = '<div class="portal-detail-images"><h4>Images</h4><div class="portal-detail-thumbs">';
       loadImgs.forEach((imgPath) => {
         const filename = imgPath.split('/').pop();
         const src = `${API}/api/portal/images/${type}/${row.id}/${filename}`;
         imagesHtml += `<img class="portal-thumb" src="${src}" alt="Load image" loading="lazy">`;
       });
-      if (invoiceImg) {
-        const invFilename = invoiceImg.split('/').pop();
-        const invSrc = `${API}/api/portal/images/${type}/${row.id}/${invFilename}`;
-        imagesHtml += `<img class="portal-thumb" src="${invSrc}" alt="Invoice image" loading="lazy">`;
-      }
+      invoiceImgs.forEach((imgPath, idx) => {
+        const filename = imgPath.split('/').pop();
+        const src = `${API}/api/portal/images/${type}/${row.id}/${filename}`;
+        imagesHtml += `<img class="portal-thumb" src="${src}" alt="Invoice image ${idx + 1}" loading="lazy">`;
+      });
       imagesHtml += '</div></div>';
     }
 
@@ -336,6 +336,22 @@
       return Array.isArray(arr) ? arr : [];
     } catch {
       return [];
+    }
+  }
+
+  /**
+   * Parses invoice_image column into an array of paths.
+   * Handles both legacy single-path strings and new JSON array format.
+   * @param {string|null} raw
+   * @returns {string[]}
+   */
+  function parseInvoiceImages(raw) {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [raw];
+    } catch {
+      return [raw];
     }
   }
 

@@ -55,6 +55,22 @@ function countLoadImages(raw) {
   }
 }
 
+/**
+ * Counts invoice images from the invoice_image column.
+ * Handles both legacy single-path strings and new JSON array format.
+ * @param {string|null} raw - invoice_image column value
+ * @returns {number}
+ */
+function countInvoiceImages(raw) {
+  if (!raw) return 0;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.length : 1;
+  } catch {
+    return 1;
+  }
+}
+
 const REPORT_STYLES = `
   body { font-family: Arial,sans-serif; font-size: 12px; margin: 16px; color: #222; max-width: 595px; }
   h1 { font-size: 18px; margin: 0 0 12px; color: #1a237e; }
@@ -127,7 +143,7 @@ function buildRawOutHtml(row) {
     <tr><td>Pallets wrapped &amp; covered</td><td>${fmt(row.pallets_wrapped)}</td></tr>
     <tr><td>Driver name</td><td>${fmt(row.driver_name)}</td></tr>
     <tr><td>Invoice / Delivery note #</td><td>${fmt(row.invoice_number)}</td></tr>
-    <tr><td>Invoice / DN image</td><td>${row.invoice_image ? '1 attached' : '—'}</td></tr>
+    <tr><td>Invoice / DN image</td><td>${countInvoiceImages(row.invoice_image) > 0 ? countInvoiceImages(row.invoice_image) + ' attached' : '—'}</td></tr>
     <tr><td>Checked by</td><td>${fmt(row.checked_by)}</td></tr>
     <tr><td>Additional comments</td><td>${fmt(row.additional_comments)}</td></tr>
   </table>
@@ -159,7 +175,7 @@ function buildReworkOutHtml(row) {
     <tr><td>Load images</td><td>${countLoadImages(row.load_images)} attached</td></tr>
     <tr><td>Driver name</td><td>${fmt(row.driver_name)}</td></tr>
     <tr><td>Invoice / Delivery note #</td><td>${fmt(row.invoice_number)}</td></tr>
-    <tr><td>Invoice / DN image</td><td>${row.invoice_image ? '1 attached' : '—'}</td></tr>
+    <tr><td>Invoice / DN image</td><td>${countInvoiceImages(row.invoice_image) > 0 ? countInvoiceImages(row.invoice_image) + ' attached' : '—'}</td></tr>
     <tr><td>Checked by</td><td>${fmt(row.checked_by)}</td></tr>
     <tr><td>Additional comments</td><td>${fmt(row.additional_comments)}</td></tr>
   </table>
@@ -191,7 +207,7 @@ function buildReworkInHtml(row) {
     <tr><td>Load images</td><td>${countLoadImages(row.load_images)} attached</td></tr>
     <tr><td>Driver name</td><td>${fmt(row.driver_name)}</td></tr>
     <tr><td>Invoice / Delivery note #</td><td>${fmt(row.invoice_number)}</td></tr>
-    <tr><td>Invoice / DN image</td><td>${row.invoice_image ? '1 attached' : '—'}</td></tr>
+    <tr><td>Invoice / DN image</td><td>${countInvoiceImages(row.invoice_image) > 0 ? countInvoiceImages(row.invoice_image) + ' attached' : '—'}</td></tr>
     <tr><td>Checked by</td><td>${fmt(row.checked_by)}</td></tr>
     <tr><td>Additional comments</td><td>${fmt(row.additional_comments)}</td></tr>
   </table>
@@ -207,5 +223,6 @@ module.exports = {
   buildReworkInHtml,
   formatGrades,
   countLoadImages,
+  countInvoiceImages,
   fmt
 };

@@ -58,18 +58,40 @@ function resolveImagePaths(relativePaths) {
 }
 
 /**
- * Saves a single base64 JPEG invoice image to disk.
+ * Saves an array of base64 JPEG invoice images to disk.
  * @param {number} submissionId
- * @param {string} base64Str - Base64 encoded JPEG (no data URI prefix)
- * @returns {string} Relative path from uploads root
+ * @param {string[]} base64Images - Array of base64 encoded JPEG strings
+ * @returns {string[]} Relative paths from uploads root
  */
-function saveInvoiceImage(submissionId, base64Str) {
+function saveInvoiceImages(submissionId, base64Images) {
+  if (!Array.isArray(base64Images) || base64Images.length === 0) return [];
   const dir = path.join(UPLOADS_ROOT, String(submissionId));
   fs.mkdirSync(dir, { recursive: true });
-  const clean = base64Str.replace(/^data:image\/\w+;base64,/, '');
-  const filename = 'invoice.jpg';
-  fs.writeFileSync(path.join(dir, filename), Buffer.from(clean, 'base64'));
-  return path.join('raw-out', String(submissionId), filename);
+  const saved = [];
+  base64Images.forEach((b64, idx) => {
+    if (typeof b64 !== 'string' || !b64.length) return;
+    const clean = b64.replace(/^data:image\/\w+;base64,/, '');
+    const filename = `invoice_${idx + 1}.jpg`;
+    fs.writeFileSync(path.join(dir, filename), Buffer.from(clean, 'base64'));
+    saved.push(path.join('raw-out', String(submissionId), filename));
+  });
+  return saved;
+}
+
+/**
+ * Parses the invoice_image DB column, handling both legacy single-path strings
+ * and new JSON array format.
+ * @param {string|null} val - Column value
+ * @returns {string[]} Array of relative paths
+ */
+function parseInvoiceImages(val) {
+  if (!val) return [];
+  try {
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : [val];
+  } catch (_) {
+    return [val];
+  }
 }
 
 /**
@@ -96,7 +118,7 @@ router.post('/', async (req, res) => {
       pallets_wrapped,
       driver_name,
       invoice_number,
-      invoice_image,
+      invoice_images,
       additional_comments,
       checked_by,
       completed_at
@@ -151,20 +173,22 @@ router.post('/', async (req, res) => {
       }
     }
 
-    let invoicePath = null;
-    if (typeof invoice_image === 'string' && invoice_image.length > 0) {
-      invoicePath = saveInvoiceImage(id, invoice_image);
-      await pool.execute(
-        'UPDATE raw_out_submissions SET invoice_image = ? WHERE id = ?',
-        [invoicePath, id]
-      );
+    let invoicePaths = [];
+    if (Array.isArray(invoice_images) && invoice_images.length > 0) {
+      invoicePaths = saveInvoiceImages(id, invoice_images.slice(0, 5));
+      if (invoicePaths.length > 0) {
+        await pool.execute(
+          'UPDATE raw_out_submissions SET invoice_image = ? WHERE id = ?',
+          [JSON.stringify(invoicePaths), id]
+        );
+      }
     }
 
     const [rows] = await pool.query('SELECT * FROM raw_out_submissions WHERE id = ?', [id]);
     if (rows[0]) {
       const absolutePaths = resolveImagePaths(savedPaths);
-      const absInvoicePath = invoicePath ? resolveImagePaths([invoicePath])[0] || null : null;
-      sendRawOutReport(rows[0], absolutePaths, absInvoicePath).catch((e) => console.error('[Email] Raw Out send error:', e));
+      const absInvoicePaths = resolveImagePaths(invoicePaths);
+      sendRawOutReport(rows[0], absolutePaths, absInvoicePaths).catch((e) => console.error('[Email] Raw Out send error:', e));
     }
     res.status(201).json({ id, message: 'Raw Out submission saved' });
   } catch (err) {
@@ -202,10 +226,8 @@ router.post('/:id/email-report', async (req, res) => {
     const imgPaths = rows[0].load_images
       ? resolveImagePaths(typeof rows[0].load_images === 'string' ? JSON.parse(rows[0].load_images) : rows[0].load_images)
       : [];
-    const invoiceImgPath = rows[0].invoice_image
-      ? (resolveImagePaths([rows[0].invoice_image])[0] || null)
-      : null;
-    await sendRawOutReport(rows[0], imgPaths, invoiceImgPath);
+    const invoiceImgPaths = resolveImagePaths(parseInvoiceImages(rows[0].invoice_image));
+    await sendRawOutReport(rows[0], imgPaths, invoiceImgPaths);
     res.json({ message: 'Report sent' });
   } catch (err) {
     console.error('Raw Out email report error:', err);

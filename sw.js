@@ -3,13 +3,14 @@
  * Enables offline caching and installability.
  */
 
-const CACHE_NAME = 'material-hub-v46';
+const CACHE_NAME = 'material-hub-v47';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
   '/auth.js',
   '/app.js',
+  '/camera.js',
   '/rawIn.js',
   '/rawOut.js',
   '/reworkOut.js',

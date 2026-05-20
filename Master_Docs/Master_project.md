@@ -194,7 +194,7 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 **Docker with HTTPS (recommended):**
 ```bash
 # 1. Create server/.env (DB + SMTP from Credentials section above)
-# 2. Run migrations on MySQL (001_init.sql through 014_raw_in_invoice_image.sql)
+# 2. Run migrations on MySQL (001_init.sql through 015_invoice_images_array.sql)
 # 3. Ensure app-network exists: docker network create app-network
 ./deploy.sh --https
 ```
@@ -269,3 +269,5 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 | 2026-03-08 | Raw In grades count increased from 5 to 10 options in the "Number of grades received" dropdown. SW cache v43. |
 | 2026-03-14 | Rework Out: "Total Kg" number input added below each material grade dropdown (matching Raw In, Raw Out, Rework In); `grades_sent` JSON now stores `{ grade, total_kg }` instead of `{ grade }`; email report switched from `sent_rework` to `sent` mode so kg values display; portal `fmtGrades` updated to show kg for all form types. SW cache v44. |
 | 2026-03-14 | Frontend visual redesign: industrial-utilitarian aesthetic with Outfit (headings) + Source Sans 3 (body) typography via Google Fonts; new color palette (deep navy `#0d1b2a`, steel blue `#1b3a5c`, industrial orange `#e85d26` accent, warm off-white `#f0ede8` surface); bold filled SVG icons for all 6 home grid tiles; staggered fade-in animation on grid tiles; panel slide-up entrance animation; orange focus glow on inputs; subtle grain texture on body; diagonal line pattern on header; orange accent borders on grade groups and tile tops; settings nav hover with left-border accent; backdrop blur on modals/lightbox; auth card entrance animation; refined spacing and padding throughout. SW cache v45. |
+| 2026-05-20 | Camera UX overhaul: extracted shared `camera.js` module from duplicated code in rawIn/rawOut/reworkOut/reworkIn; fullscreen camera overlay with shutter button, review-before-accept flow, multi-photo continuous mode; larger 120px thumbnails with tap-to-enlarge lightbox; haptic feedback on capture. SW cache v47. |
+| 2026-05-20 | Multi invoice photos: invoice capture changed from single image to up to 5 images across all 4 form pages; frontend uses `invoiceImages[]` array with multi-photo camera mode; backend `saveInvoiceImages()` saves `invoice_1.jpg`–`invoice_5.jpg`, stores paths as JSON array in `invoice_image` column; `buildAttachments()` attaches multiple invoice documents; report HTML counts images dynamically; portal renders multiple invoice thumbnails; migration 015 widens `invoice_image` columns to TEXT; backward-compatible with legacy single-path strings via `parseInvoiceImages()` helper. |
