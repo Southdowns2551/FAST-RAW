@@ -252,6 +252,10 @@
 
   reviewDoneBtn.addEventListener('click', function () {
     var opts = currentOptions;
+    if (pendingDataUri && opts) {
+      capturedCount++;
+      opts.onPhoto(pendingDataUri, pendingCanvas);
+    }
     pendingDataUri = null;
     pendingCanvas = null;
     hideOverlay();
