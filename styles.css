@@ -1,18 +1,19 @@
 /* Material Hub - Material Management Services PWA */
-/* Industrial-utilitarian aesthetic: navy + orange, warm tones, bold typography */
+/* Clean corporate aesthetic: navy + steel blue, cool tones, bold typography */
 
 :root {
   --primary: #0d1b2a;
   --primary-light: #1b3a5c;
-  --accent: #e85d26;
-  --accent-hover: #d14e1a;
-  --surface: #f0ede8;
+  --accent: #2b6cb0;
+  --accent-hover: #245a9e;
+  --surface: #f0f2f5;
   --surface-elevated: #ffffff;
   --text: #1a1a1a;
   --text-secondary: #6b6b6b;
   --success: #2d6a4f;
-  --border: #d4d0c8;
+  --border: #dce1e8;
   --radius: 10px;
+  --icon-bg: #e8eef5;
   --shadow: 0 2px 8px rgba(13, 27, 42, 0.07);
   --shadow-hover: 0 6px 20px rgba(13, 27, 42, 0.12);
   --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -37,7 +38,6 @@ body {
   margin: 0;
   font-family: var(--font-body);
   background: var(--surface);
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
   color: var(--text);
   min-height: 100vh;
   min-height: -webkit-fill-available;
@@ -50,18 +50,10 @@ body {
 /* ── Header ── */
 
 .app-header {
-  background:
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 10px,
-      rgba(255, 255, 255, 0.03) 10px,
-      rgba(255, 255, 255, 0.03) 20px
-    ),
-    linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: var(--primary);
   color: white;
-  padding: 2rem 1.5rem;
-  padding-top: max(2rem, env(safe-area-inset-top));
+  padding: 1rem 1.5rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
 }
 
 .header-row {
@@ -138,11 +130,10 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 1.75rem 1rem;
+  padding: 2rem 1rem;
   background: var(--surface-elevated);
   border: none;
-  border-top: 3px solid var(--accent);
-  border-radius: var(--radius);
+  border-radius: 16px;
   box-shadow: var(--shadow);
   cursor: pointer;
   touch-action: manipulation;
@@ -172,20 +163,29 @@ body {
   justify-self: center;
 }
 
+.tile-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--icon-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .tile-icon {
-  width: 48px;
-  height: 48px;
-  color: var(--primary);
+  width: 28px;
+  height: 28px;
+  color: var(--primary-light);
 }
 
 .tile-label {
   font-family: var(--font-display);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
   text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 /* ── Bottom Navigation ── */
@@ -248,7 +248,7 @@ body {
   padding: 1.75rem;
   margin-bottom: 1rem;
   box-shadow: var(--shadow);
-  border-top: 3px solid var(--primary);
+  border-top: 3px solid var(--accent);
   animation: panelSlideUp 0.3s ease-out;
 }
 
@@ -320,17 +320,17 @@ body {
   cursor: pointer;
   touch-action: manipulation;
   transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-  box-shadow: 0 2px 6px rgba(232, 93, 38, 0.25);
+  box-shadow: 0 2px 6px rgba(43, 108, 176, 0.25);
 }
 
 .btn-primary:hover {
   background: var(--accent-hover);
-  box-shadow: 0 4px 12px rgba(232, 93, 38, 0.3);
+  box-shadow: 0 4px 12px rgba(43, 108, 176, 0.3);
 }
 
 .btn-primary:active {
   transform: scale(0.97);
-  box-shadow: 0 1px 3px rgba(232, 93, 38, 0.2);
+  box-shadow: 0 1px 3px rgba(43, 108, 176, 0.2);
 }
 
 .btn-primary:disabled {
@@ -403,7 +403,7 @@ body {
 .form-group textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(232, 93, 38, 0.12);
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.12);
 }
 
 .form-group textarea {
@@ -412,7 +412,7 @@ body {
 }
 
 .form-group select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23e85d26' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232b6cb0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.85rem center;
   padding-right: 2.25rem;
@@ -622,7 +622,7 @@ body {
 .settings-add select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(232, 93, 38, 0.12);
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.12);
 }
 
 .settings-add-vertical {
@@ -732,7 +732,7 @@ body {
 .grade-batch-group input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(232, 93, 38, 0.12);
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.12);
 }
 
 .grade-batch-group input:last-of-type {
@@ -961,11 +961,11 @@ body {
 .portal-filter-group select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(232, 93, 38, 0.12);
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.12);
 }
 
 .portal-filter-group select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23e85d26' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232b6cb0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.6rem center;
   padding-right: 1.8rem;
@@ -1464,7 +1464,7 @@ body {
 .camera-review-btn--use {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(232, 93, 38, 0.35);
+  box-shadow: 0 2px 8px rgba(43, 108, 176, 0.35);
 }
 
 .camera-review-btn--retake {
@@ -1534,7 +1534,7 @@ body {
 
 @media (min-width: 600px) {
   .app-header {
-    padding: 2.5rem 2rem;
+    padding: 1.25rem 2rem;
   }
 
   .app-main {
