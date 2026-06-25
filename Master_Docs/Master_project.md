@@ -130,6 +130,23 @@ SMTP_PASS=Master13520
 SMTP_FROM=reports@italpac.co.za
 ```
 
+**Egnyte (report cloud upload)**
+
+| Field | Value |
+|-------|-------|
+| Domain | italpac1a |
+| Access Token | YbdFkTUt0H1eKsurJ59miSFFFWNq |
+| Upload Path | /Shared/API - Material Hub |
+| Scope | Production — shared with FAST app (same italpac1a token) |
+
+Add to `server/.env`:
+```
+EGNYTE_DOMAIN=italpac1a
+EGNYTE_ACCESS_TOKEN=YbdFkTUt0H1eKsurJ59miSFFFWNq
+EGNYTE_UPLOAD_PATH=/Shared/API - Material Hub
+```
+Reports are zipped (report HTML + images) and pushed to `{UPLOAD_PATH}/{type}/{YYYY-MM}/` where type is `Raw In`, `Raw Out`, `Rework In`, or `Rework Out`.
+
 **Plate Recognizer (ANPR)**
 
 | Field | Value |
@@ -167,6 +184,7 @@ Enter in PWA Settings tab → Plate Recognizer (ANPR) → paste token → Save.
 - DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 - JWT_SECRET (for signing auth tokens)
 - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (for reports@italpac.co.za)
+- EGNYTE_DOMAIN, EGNYTE_ACCESS_TOKEN, EGNYTE_UPLOAD_PATH (report ZIP upload to Egnyte; reports also emailed). When unset, Egnyte upload is skipped silently.
 - See `server/.env.example`
 
 ---
@@ -272,3 +290,4 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 | 2026-05-20 | Camera UX overhaul: extracted shared `camera.js` module from duplicated code in rawIn/rawOut/reworkOut/reworkIn; fullscreen camera overlay with shutter button, review-before-accept flow, multi-photo continuous mode; larger 120px thumbnails with tap-to-enlarge lightbox; haptic feedback on capture. SW cache v47. |
 | 2026-05-20 | Multi invoice photos: invoice capture changed from single image to up to 5 images across all 4 form pages; frontend uses `invoiceImages[]` array with multi-photo camera mode; backend `saveInvoiceImages()` saves `invoice_1.jpg`–`invoice_5.jpg`, stores paths as JSON array in `invoice_image` column; `buildAttachments()` attaches multiple invoice documents; report HTML counts images dynamically; portal renders multiple invoice thumbnails; migration 015 widens `invoice_image` columns to TEXT; backward-compatible with legacy single-path strings via `parseInvoiceImages()` helper. |
 | 2026-05-24 | UI redesign to match organisation's corporate design language: replaced orange accent palette with steel blue (`#2b6cb0`); warm off-white surface changed to cool gray (`#f0f2f5`); removed body grain texture and header diagonal pattern; header simplified to solid navy; home grid tiles restyled with 16px border-radius and rounded-square icon containers (`--icon-bg: #e8eef5`); new clean filled SVG icons for all 6 tiles (Raw In/Out arrows, Rework In clockwise / Out anti-clockwise cycle, Internal Rework sync, Portal grid); tile labels no longer uppercase; tab panel top border switched from navy to accent blue; all orange focus rings, button shadows, and select arrow SVGs updated to steel blue; manifest and meta theme-color set to `#0d1b2a`. SW cache v50. |
+| 2026-06-25 | Egnyte report upload: every report (Raw In/Out, Rework In/Out) is now also zipped (report HTML + load/invoice images) and pushed to Egnyte folder `/Shared/API - Material Hub/{type}/{YYYY-MM}/`, in addition to email. Ported FAST's `egnyte.js` client (REST `fs-content` API, bearer token); added `archiver` dependency; `email.js` gains `buildReportZip()` + `pushToEgnyte()` called fire-and-forget after each `sendMail` (covers new submissions and portal re-send). Reuses FAST's italpac1a Egnyte token via new `EGNYTE_*` env vars in `server/.env`. No frontend/DB changes. Upload skipped silently when env not configured. |
