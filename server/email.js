@@ -126,7 +126,7 @@ async function sendRawInReport(row, invoiceImagePaths) {
     attachments
   });
   console.log('[Email] Report sent for Raw In id=%s to %s (%d attachments)', row.id, REPORT_TO, attachments.length);
-  pushToEgnyte(null, `Material_Hub_Raw_In_${row.id}`, html, attachments).catch((e) => console.error('[Egnyte] Raw In push error:', e));
+  pushToEgnyte('Raw In', `Material_Hub_Raw_In_${row.id}`, html, attachments).catch((e) => console.error('[Egnyte] Raw In push error:', e));
 }
 
 /**
@@ -152,7 +152,7 @@ async function sendRawOutReport(row, imagePaths, invoiceImagePaths) {
     attachments
   });
   console.log('[Email] Raw Out report sent for id=%s to %s (%d images attached)', row.id, REPORT_TO, attachments.length);
-  pushToEgnyte(null, `Material_Hub_Raw_Out_${row.id}`, html, attachments).catch((e) => console.error('[Egnyte] Raw Out push error:', e));
+  pushToEgnyte('Raw Out', `Material_Hub_Raw_Out_${row.id}`, html, attachments).catch((e) => console.error('[Egnyte] Raw Out push error:', e));
 }
 
 /**
@@ -178,7 +178,7 @@ async function sendReworkOutReport(row, imagePaths, invoiceImagePaths) {
     attachments
   });
   console.log('[Email] Rework Out report sent for id=%s to %s (%d images attached)', row.id, REPORT_TO, attachments.length);
-  pushToEgnyte(null, `Material_Hub_Rework_Out_${row.id}`, html, attachments).catch((e) => console.error('[Egnyte] Rework Out push error:', e));
+  pushToEgnyte('Rework Out', `Material_Hub_Rework_Out_${row.id}`, html, attachments).catch((e) => console.error('[Egnyte] Rework Out push error:', e));
 }
 
 /**
@@ -204,7 +204,7 @@ async function sendReworkInReport(row, imagePaths, invoiceImagePaths) {
     attachments
   });
   console.log('[Email] Rework In report sent for id=%s to %s (%d images attached)', row.id, REPORT_TO, attachments.length);
-  pushToEgnyte(null, `Material_Hub_Rework_In_${row.id}`, html, attachments).catch((e) => console.error('[Egnyte] Rework In push error:', e));
+  pushToEgnyte('Rework In', `Material_Hub_Rework_In_${row.id}`, html, attachments).catch((e) => console.error('[Egnyte] Rework In push error:', e));
 }
 
 module.exports = { sendRawInReport, sendRawOutReport, sendReworkOutReport, sendReworkInReport };

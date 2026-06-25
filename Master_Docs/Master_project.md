@@ -136,16 +136,16 @@ SMTP_FROM=reports@italpac.co.za
 |-------|-------|
 | Domain | italpac1a |
 | Access Token | YbdFkTUt0H1eKsurJ59miSFFFWNq |
-| Upload Path | /Shared/API - Material Hub |
+| Upload Path | /Shared/IP - Device Reports/API - Material Hub |
 | Scope | Production — shared with FAST app (same italpac1a token) |
 
 Add to `server/.env`:
 ```
 EGNYTE_DOMAIN=italpac1a
 EGNYTE_ACCESS_TOKEN=YbdFkTUt0H1eKsurJ59miSFFFWNq
-EGNYTE_UPLOAD_PATH=/Shared/API - Material Hub
+EGNYTE_UPLOAD_PATH=/Shared/IP - Device Reports/API - Material Hub
 ```
-Reports are zipped (report HTML + images) and pushed directly into `{UPLOAD_PATH}` (flat, no subfolders). The report type, submission id, and timestamp are encoded in each zip filename, e.g. `Material_Hub_Rework_Out_53_<ts>.zip`.
+Reports are zipped (report HTML + images) and pushed to `{UPLOAD_PATH}/{type}/{YYYY-MM}/` where type is `Raw In`, `Raw Out`, `Rework In`, or `Rework Out`. Filename encodes type, submission id, and timestamp, e.g. `Material_Hub_Rework_Out_53_<ts>.zip`.
 
 **Plate Recognizer (ANPR)**
 
@@ -292,3 +292,4 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 | 2026-05-24 | UI redesign to match organisation's corporate design language: replaced orange accent palette with steel blue (`#2b6cb0`); warm off-white surface changed to cool gray (`#f0f2f5`); removed body grain texture and header diagonal pattern; header simplified to solid navy; home grid tiles restyled with 16px border-radius and rounded-square icon containers (`--icon-bg: #e8eef5`); new clean filled SVG icons for all 6 tiles (Raw In/Out arrows, Rework In clockwise / Out anti-clockwise cycle, Internal Rework sync, Portal grid); tile labels no longer uppercase; tab panel top border switched from navy to accent blue; all orange focus rings, button shadows, and select arrow SVGs updated to steel blue; manifest and meta theme-color set to `#0d1b2a`. SW cache v50. |
 | 2026-06-25 | Egnyte report upload: every report (Raw In/Out, Rework In/Out) is now also zipped (report HTML + load/invoice images) and pushed to Egnyte folder `/Shared/API - Material Hub`, in addition to email. Ported FAST's `egnyte.js` client (REST `fs-content` API, bearer token); added `archiver` dependency; `email.js` gains `buildReportZip()` + `pushToEgnyte()` called fire-and-forget after each `sendMail` (covers new submissions and portal re-send). Reuses FAST's italpac1a Egnyte token via new `EGNYTE_*` env vars in `server/.env`. No frontend/DB changes. Upload skipped silently when env not configured. |
 | 2026-06-25 | Egnyte layout flattened: zips now land directly in `/Shared/API - Material Hub` (removed the per-type and `YYYY-MM` month subfolders) so reports are visible at the folder root; type/id/timestamp remain in the filename. `egnyte.js` no longer forces a month subfolder; `email.js` calls `pushToEgnyte` with no subfolder. |
+| 2026-06-25 | Egnyte path corrected + structure restored: base path moved to existing `/Shared/IP - Device Reports/API - Material Hub` (the earlier `/Shared/API - Material Hub` was an auto-created stray folder, which is why uploads appeared "missing"). Restored per-type + `YYYY-MM` month subfolders (e.g. `Rework Out/2026-06/`) per request. Existing id=53 zip migrated to the corrected location and stray folder removed. |
