@@ -27,7 +27,7 @@
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | /api/health | GET | Health check, DB connectivity |
-| /api/raw-in | POST | Submit Raw In record (auto-emails report to reports@italpac.co.za) |
+| /api/raw-in | POST | Submit Raw In record (uploads report ZIP to Egnyte) |
 | /api/raw-in | GET | List recent Raw In submissions |
 | /api/raw-in/:id/email-report | POST | Re-send one-page report (portal) |
 | /api/settings/suppliers | GET | List suppliers |
@@ -38,13 +38,13 @@
 | /api/settings/masterbatch_grades | GET/POST/DELETE | Same for masterbatch grades (Raw In / Raw Out) |
 | /api/settings/rework_grades | GET/POST/DELETE | Same for rework grades (Rework Out / Rework In) |
 | /api/settings/reasons | GET/POST/DELETE | Same for material out reasons |
-| /api/raw-out | POST | Submit Raw Out record with load images (auto-emails report + attachments to reports@italpac.co.za) |
+| /api/raw-out | POST | Submit Raw Out record with load images (uploads report ZIP to Egnyte) |
 | /api/raw-out | GET | List recent Raw Out submissions |
 | /api/raw-out/:id/email-report | POST | Re-send Raw Out one-page report |
-| /api/rework-out | POST | Submit Rework Out record with load images (auto-emails report + attachments to reports@italpac.co.za) |
+| /api/rework-out | POST | Submit Rework Out record with load images (uploads report ZIP to Egnyte) |
 | /api/rework-out | GET | List recent Rework Out submissions |
 | /api/rework-out/:id/email-report | POST | Re-send Rework Out one-page report |
-| /api/rework-in | POST | Submit Rework In record with load images (auto-emails report + attachments to reports@italpac.co.za) |
+| /api/rework-in | POST | Submit Rework In record with load images (uploads report ZIP to Egnyte) |
 | /api/rework-in | GET | List recent Rework In submissions |
 | /api/rework-in/:id/email-report | POST | Re-send Rework In one-page report |
 | /api/settings/app/:key | GET | Read app setting (e.g. `anpr_key`); returns `{ value }` |
@@ -111,24 +111,18 @@
 
 ## Credentials & Access
 
-**SMTP (reports@italpac.co.za)**
+**SMTP (reports@italpac.co.za) — DEPRECATED / NO LONGER USED**
+
+> Email delivery was removed on 2026-06-25. Reports are now pushed only to Egnyte
+> (see below). The SMTP credentials are retained here for reference only; no
+> `SMTP_*` vars are required by the app and `nodemailer` has been removed.
 
 | Field | Value |
 |-------|-------|
 | Host | mail.italpac.co.za |
 | Username | reports@italpac.co.za |
 | Password | Master13520 |
-| Scope | Production — Raw In report emails |
-
-Add to `server/.env`:
-```
-SMTP_HOST=mail.italpac.co.za
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=reports@italpac.co.za
-SMTP_PASS=Master13520
-SMTP_FROM=reports@italpac.co.za
-```
+| Scope | Historical — former Material Hub report emails |
 
 **Egnyte (report cloud upload)**
 
@@ -183,8 +177,8 @@ Enter in PWA Settings tab → Plate Recognizer (ANPR) → paste token → Save.
 **API** — `server/.env`:
 - DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 - JWT_SECRET (for signing auth tokens)
-- SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (for reports@italpac.co.za)
-- EGNYTE_DOMAIN, EGNYTE_ACCESS_TOKEN, EGNYTE_UPLOAD_PATH (report ZIP upload to Egnyte; reports also emailed). When unset, Egnyte upload is skipped silently.
+- EGNYTE_DOMAIN, EGNYTE_ACCESS_TOKEN, EGNYTE_UPLOAD_PATH (report ZIP upload to Egnyte). When unset, Egnyte upload is skipped silently.
+- SMTP_* no longer used (email delivery removed 2026-06-25)
 - See `server/.env.example`
 
 ---
@@ -211,7 +205,7 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 
 **Docker with HTTPS (recommended):**
 ```bash
-# 1. Create server/.env (DB + SMTP from Credentials section above)
+# 1. Create server/.env (DB + Egnyte from Credentials section above)
 # 2. Run migrations on MySQL (001_init.sql through 015_invoice_images_array.sql)
 # 3. Ensure app-network exists: docker network create app-network
 ./deploy.sh --https
@@ -240,7 +234,7 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 **Deploy to sab005:**
 1. Copy project: `scp -r . root@156.38.144.162:/opt/docker/material-hub/`
 2. SSH: `ssh root@156.38.144.162`
-3. Create `server/.env` with DB + SMTP credentials
+3. Create `server/.env` with DB + Egnyte credentials
 4. Run migrations (Adminer via tunnel or mysql client)
 5. Run `./deploy.sh` or `docker compose -f docker-compose.deploy.yml -f docker-compose.override.yml up -d` (when behind nginx-proxy)
 6. Add nginx-proxy vhost for domain (see /opt/docker/nginx-proxy/conf.d/ipraw.conf)
@@ -293,3 +287,4 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 | 2026-06-25 | Egnyte report upload: every report (Raw In/Out, Rework In/Out) is now also zipped (report HTML + load/invoice images) and pushed to Egnyte folder `/Shared/API - Material Hub`, in addition to email. Ported FAST's `egnyte.js` client (REST `fs-content` API, bearer token); added `archiver` dependency; `email.js` gains `buildReportZip()` + `pushToEgnyte()` called fire-and-forget after each `sendMail` (covers new submissions and portal re-send). Reuses FAST's italpac1a Egnyte token via new `EGNYTE_*` env vars in `server/.env`. No frontend/DB changes. Upload skipped silently when env not configured. |
 | 2026-06-25 | Egnyte layout flattened: zips now land directly in `/Shared/API - Material Hub` (removed the per-type and `YYYY-MM` month subfolders) so reports are visible at the folder root; type/id/timestamp remain in the filename. `egnyte.js` no longer forces a month subfolder; `email.js` calls `pushToEgnyte` with no subfolder. |
 | 2026-06-25 | Egnyte path corrected + structure restored: base path moved to existing `/Shared/IP - Device Reports/API - Material Hub` (the earlier `/Shared/API - Material Hub` was an auto-created stray folder, which is why uploads appeared "missing"). Restored per-type + `YYYY-MM` month subfolders (e.g. `Rework Out/2026-06/`) per request. Existing id=53 zip migrated to the corrected location and stray folder removed. |
+| 2026-06-25 | Email delivery removed: reports are no longer emailed to reports@italpac.co.za — they are now pushed only to Egnyte. `email.js` rewritten to drop nodemailer/SMTP and only build + upload the report ZIP (exported `send*Report` function names kept so routes/portal re-send are unchanged). Removed `nodemailer` dependency and SMTP block from `.env.example`. SMTP credentials retained in this doc for reference only. |

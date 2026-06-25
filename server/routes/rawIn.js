@@ -1,7 +1,7 @@
 /**
  * Raw In submission route.
  * POST /api/raw-in - insert a new Raw In record.
- * POST /api/raw-in/:id/email-report - send one-page report to reports@italpac.co.za
+ * POST /api/raw-in/:id/email-report - re-generate the report and upload it to Egnyte
  *
  * Body: started_at, location_street, location_area, location_lat, location_lng,
  * supplier, transporter, grades_received (array of {grade, batch}), vehicle_registration, vehicle_state,
