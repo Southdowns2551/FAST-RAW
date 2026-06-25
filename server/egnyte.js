@@ -24,24 +24,13 @@ function isConfigured() {
 }
 
 /**
- * Returns current month prefix as YYYY-MM.
- *
- * @returns {string} Month prefix used as a subfolder name.
- */
-function getMonthPrefix() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
-}
-
-/**
- * Uploads a file to Egnyte under: UPLOAD_PATH/subfolder/YYYY-MM/fileName
+ * Uploads a file to Egnyte under: UPLOAD_PATH/[subfolder/]fileName
  *
  * @param {string} fileName - Desired file name in the Egnyte folder.
  * @param {Buffer} buffer - Raw file content.
  * @param {string} contentType - MIME type (e.g. "application/zip").
- * @param {string} [subfolder] - Category subfolder (e.g. "Raw In", "Rework Out").
+ * @param {string} [subfolder] - Optional category subfolder. When omitted, the
+ *   file is placed directly in UPLOAD_PATH.
  * @returns {Promise<{ok: boolean, statusCode?: number, error?: string}>} Upload result.
  * @throws Never throws; network/HTTP failures are returned in the result object.
  * @sideeffect Performs an outbound HTTPS POST to the Egnyte API.
@@ -52,10 +41,8 @@ async function uploadReport(fileName, buffer, contentType, subfolder) {
   }
 
   const safeName = fileName.replace(/[<>:"|?*]/g, '_');
-  const month = getMonthPrefix();
   const folderSegments = [EGNYTE_UPLOAD_PATH];
   if (subfolder) folderSegments.push(subfolder);
-  folderSegments.push(month);
 
   const filePath = `${folderSegments.join('/')}/${safeName}`.replace(/^\//, '');
   const url = `https://${EGNYTE_DOMAIN}.egnyte.com/pubapi/v1/fs-content/${encodeURI(filePath)}`;
