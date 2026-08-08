@@ -1,6 +1,6 @@
 /**
  * Shared report HTML builders.
- * Used by both email.js (for sending reports) and portal.js (for PDF generation).
+ * Used by email.js to build the report bundled into each Egnyte report ZIP.
  *
  * Each builder takes a DB row and returns a complete HTML document string.
  */
@@ -216,11 +216,51 @@ function buildReworkInHtml(row) {
 </html>`;
 }
 
+/**
+ * Formats a DATETIME value as a date-only string.
+ * @param {Date|string|null} v - value from a DATETIME column
+ * @returns {string} "YYYY-MM-DD" or em-dash when empty
+ */
+function fmtDateOnly(v) {
+  if (v == null || v === '') return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * Builds HTML report for a Waste submission.
+ * @param {Object} row - waste_submissions record
+ * @returns {string} complete HTML document
+ */
+function buildWasteHtml(row) {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Waste Report #${row.id}</title><style>${REPORT_STYLES}</style></head>
+<body>
+  <h1>Material Hub — Waste Report</h1>
+  <table>
+    <tr><td>Report ID</td><td>${row.id}</td></tr>
+    <tr><td>Date</td><td>${fmtDateOnly(row.started_at)}</td></tr>
+    <tr><td>Shift</td><td>${fmt(row.shift)}</td></tr>
+    <tr><td>Department</td><td>${fmt(row.department)}</td></tr>
+    <tr><td>Type</td><td>${fmt(row.waste_type)}</td></tr>
+    <tr><td>Kg</td><td>${fmt(row.kg)}</td></tr>
+    <tr><td>Completed by</td><td>${fmt(row.completed_by)}</td></tr>
+    <tr><td>Completed</td><td>${fmt(row.completed_at)}</td></tr>
+  </table>
+  <p class="footer">Material Management Services — Generated on completion</p>
+</body>
+</html>`;
+}
+
 module.exports = {
   buildRawInHtml,
   buildRawOutHtml,
   buildReworkOutHtml,
   buildReworkInHtml,
+  buildWasteHtml,
   formatGrades,
   countLoadImages,
   countInvoiceImages,

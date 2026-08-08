@@ -3,15 +3,15 @@
  *
  * GET  /api/portal/submissions          - paginated, filterable listing across all 4 tables
  * GET  /api/portal/submissions/:type/:id - single record detail
- * GET  /api/portal/submissions/:type/:id/pdf - PDF download of report
  * GET  /api/portal/images/:type/:id/:filename - serve load/invoice images
  *
  * Query params for listing:
- *   type     - raw_in | raw_out | rework_in | rework_out | all (default)
+ *   type     - raw_in | raw_out | rework_in | rework_out | waste | all (default)
  *   from     - start date YYYY-MM-DD (inclusive)
  *   to       - end date YYYY-MM-DD (inclusive)
  *   supplier - filter by supplier/customer/recycler name (partial match)
  *   grade    - filter by grade name in JSON column
+ *   department - waste only; exact department match
  *   page     - page number (default 1)
  *   limit    - rows per page (default 25, max 100)
  */
@@ -20,30 +20,24 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { pool } = require('../db');
-const { buildRawInHtml, buildRawOutHtml, buildReworkOutHtml, buildReworkInHtml } = require('../reportHtml');
 
 const router = express.Router();
 
-const VALID_TYPES = ['raw_in', 'raw_out', 'rework_in', 'rework_out'];
+const VALID_TYPES = ['raw_in', 'raw_out', 'rework_in', 'rework_out', 'waste'];
 
 const TABLE_MAP = {
   raw_in: 'raw_in_submissions',
   raw_out: 'raw_out_submissions',
   rework_out: 'rework_out_submissions',
-  rework_in: 'rework_in_submissions'
+  rework_in: 'rework_in_submissions',
+  waste: 'waste_submissions'
 };
 
 const UPLOAD_DIR_MAP = {
+  raw_in: 'raw-in',
   raw_out: 'raw-out',
   rework_out: 'rework-out',
   rework_in: 'rework-in'
-};
-
-const HTML_BUILDERS = {
-  raw_in: buildRawInHtml,
-  raw_out: buildRawOutHtml,
-  rework_out: buildReworkOutHtml,
-  rework_in: buildReworkInHtml
 };
 
 /**
@@ -67,14 +61,29 @@ function buildWhereClause(type, filters) {
   if (filters.supplier) {
     const col = type === 'raw_in' ? 'supplier'
       : type === 'raw_out' ? 'customer_name'
+      : type === 'waste' ? 'department'
       : 'recycler_name';
     conditions.push(`${col} LIKE ?`);
     params.push(`%${filters.supplier}%`);
   }
+  if (filters.department) {
+    if (type !== 'waste') {
+      // Only waste rows have a department, so the filter excludes everything else.
+      conditions.push('1 = 0');
+    } else {
+      conditions.push('department = ?');
+      params.push(filters.department);
+    }
+  }
   if (filters.grade) {
-    const col = (type === 'raw_in' || type === 'rework_in') ? 'grades_received' : 'grades_sent';
-    conditions.push(`JSON_SEARCH(${col}, 'one', ?, NULL, '$[*].grade') IS NOT NULL`);
-    params.push(filters.grade);
+    if (type === 'waste') {
+      // Waste rows carry no grades, so a grade filter always excludes them.
+      conditions.push('1 = 0');
+    } else {
+      const col = (type === 'raw_in' || type === 'rework_in') ? 'grades_received' : 'grades_sent';
+      conditions.push(`JSON_SEARCH(${col}, 'one', ?, NULL, '$[*].grade') IS NOT NULL`);
+      params.push(filters.grade);
+    }
   }
 
   return {
@@ -91,6 +100,7 @@ function buildWhereClause(type, filters) {
 function entityCol(type) {
   if (type === 'raw_in') return 'supplier AS entity_name';
   if (type === 'raw_out') return 'customer_name AS entity_name';
+  if (type === 'waste') return 'department AS entity_name';
   return 'recycler_name AS entity_name';
 }
 
@@ -100,12 +110,55 @@ function entityCol(type) {
  * @returns {string}
  */
 function gradesCol(type) {
+  if (type === 'waste') return 'NULL AS grades_json';
   return (type === 'raw_in' || type === 'rework_in') ? 'grades_received AS grades_json' : 'grades_sent AS grades_json';
 }
 
 /**
+ * Builds the SELECT column list for one branch of the listing UNION.
+ * Every branch must expose the same aliases; types lacking a column supply NULL.
+ * @param {string} type - submission type
+ * @returns {string} comma-separated column expressions
+ */
+function listSelect(type) {
+  const isWaste = type === 'waste';
+  const vehicle = isWaste ? 'NULL AS vehicle_registration' : 'vehicle_registration';
+  const invoice = isWaste ? 'NULL AS invoice_number' : 'invoice_number';
+  const person = isWaste ? 'completed_by AS checked_by' : 'checked_by';
+  const shift = isWaste ? 'shift' : 'NULL AS shift';
+  const kg = isWaste ? 'kg' : 'NULL AS kg';
+  return `id, '${type}' AS type, started_at, completed_at, ${entityCol(type)}, `
+    + `${vehicle}, ${gradesCol(type)}, ${person}, ${invoice}, ${shift}, ${kg}`;
+}
+
+/**
+ * Sums waste kg for the current filters, grouped by department.
+ * Covers the whole filtered period rather than just the requested page.
+ * @param {Object} filters - same filter object used for the listing
+ * @returns {Promise<{total_kg: number, by_department: Array<{department: string, total_kg: number, count: number}>}>}
+ */
+async function fetchWasteTotals(filters) {
+  const { where, params } = buildWhereClause('waste', filters);
+  const [rows] = await pool.query(
+    `SELECT department, SUM(kg) AS total_kg, COUNT(*) AS cnt
+     FROM waste_submissions ${where}
+     GROUP BY department
+     ORDER BY department`,
+    params
+  );
+  // DECIMAL columns come back as strings from mysql2.
+  const byDepartment = rows.map((r) => ({
+    department: r.department,
+    total_kg: Number(r.total_kg) || 0,
+    count: Number(r.cnt) || 0
+  }));
+  const totalKg = byDepartment.reduce((sum, d) => sum + d.total_kg, 0);
+  return { total_kg: totalKg, by_department: byDepartment };
+}
+
+/**
  * GET /submissions - paginated, filterable listing.
- * @returns {{ rows: Array, page: number, limit: number, total: number }}
+ * @returns {{ rows: Array, page: number, limit: number, total: number, waste_totals: Object|null }}
  */
 router.get('/submissions', async (req, res) => {
   try {
@@ -114,7 +167,8 @@ router.get('/submissions', async (req, res) => {
       from: req.query.from || null,
       to: req.query.to || null,
       supplier: req.query.supplier || null,
-      grade: req.query.grade || null
+      grade: req.query.grade || null,
+      department: req.query.department || null
     };
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
@@ -133,7 +187,7 @@ router.get('/submissions', async (req, res) => {
       const { where, params } = buildWhereClause(t, filters);
 
       unionParts.push(
-        `SELECT id, '${t}' AS type, started_at, completed_at, ${entityCol(t)}, vehicle_registration, ${gradesCol(t)}, checked_by, invoice_number FROM ${table} ${where}`
+        `SELECT ${listSelect(t)} FROM ${table} ${where}`
       );
       allParams = allParams.concat(params);
 
@@ -152,7 +206,11 @@ router.get('/submissions', async (req, res) => {
       total += cRows[0].cnt;
     }
 
-    res.json({ rows, page, limit, total });
+    const wasteTotals = types.includes('waste')
+      ? await fetchWasteTotals(filters)
+      : null;
+
+    res.json({ rows, page, limit, total, waste_totals: wasteTotals });
   } catch (err) {
     console.error('Portal listing error:', err);
     res.status(500).json({ error: 'Failed to fetch submissions' });
@@ -177,49 +235,6 @@ router.get('/submissions/:type/:id', async (req, res) => {
   } catch (err) {
     console.error('Portal detail error:', err);
     res.status(500).json({ error: 'Failed to fetch submission' });
-  }
-});
-
-/**
- * GET /submissions/:type/:id/pdf - generate and return PDF report.
- * Uses html-pdf-node to convert the report HTML to PDF.
- * @returns {Buffer} PDF file
- */
-router.get('/submissions/:type/:id/pdf', async (req, res) => {
-  const { type, id } = req.params;
-  if (!VALID_TYPES.includes(type)) return res.status(400).json({ error: 'Invalid type' });
-  const numId = parseInt(id, 10);
-  if (isNaN(numId)) return res.status(400).json({ error: 'Invalid ID' });
-
-  try {
-    const table = TABLE_MAP[type];
-    const [rows] = await pool.query(`SELECT * FROM ${table} WHERE id = ?`, [numId]);
-    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
-
-    const builder = HTML_BUILDERS[type];
-    const html = builder(rows[0]);
-
-    let htmlPdf;
-    try {
-      htmlPdf = require('html-pdf-node');
-    } catch {
-      return res.status(500).json({ error: 'PDF generation not available' });
-    }
-
-    const file = { content: html };
-    const options = { format: 'A4', margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' } };
-    const pdfBuffer = await htmlPdf.generatePdf(file, options);
-
-    const label = type.replace('_', '-');
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${label}-report-${numId}.pdf"`,
-      'Content-Length': pdfBuffer.length
-    });
-    res.send(pdfBuffer);
-  } catch (err) {
-    console.error('Portal PDF error:', err);
-    res.status(500).json({ error: 'Failed to generate PDF' });
   }
 });
 

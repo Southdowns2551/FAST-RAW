@@ -18,6 +18,7 @@ const rawInRouter = require('./routes/rawIn');
 const rawOutRouter = require('./routes/rawOut');
 const reworkOutRouter = require('./routes/reworkOut');
 const reworkInRouter = require('./routes/reworkIn');
+const wasteRouter = require('./routes/waste');
 const settingsRouter = require('./routes/settings');
 const portalRouter = require('./routes/portal');
 
@@ -34,6 +35,7 @@ app.use('/api/raw-in', requireAuth, rawInRouter);
 app.use('/api/raw-out', requireAuth, rawOutRouter);
 app.use('/api/rework-out', requireAuth, reworkOutRouter);
 app.use('/api/rework-in', requireAuth, reworkInRouter);
+app.use('/api/waste', requireAuth, wasteRouter);
 app.use('/api/settings', requireAuth, (req, _res, next) => {
   if (req.method === 'GET') return next();
   requireAdmin(req, _res, next);

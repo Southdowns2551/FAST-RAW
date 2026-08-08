@@ -9,7 +9,7 @@
  */
 
 const archiver = require('archiver');
-const { buildRawInHtml, buildRawOutHtml, buildReworkOutHtml, buildReworkInHtml } = require('./reportHtml');
+const { buildRawInHtml, buildRawOutHtml, buildReworkOutHtml, buildReworkInHtml, buildWasteHtml } = require('./reportHtml');
 const egnyte = require('./egnyte');
 
 /**
@@ -138,4 +138,14 @@ async function sendReworkInReport(row, imagePaths, invoiceImagePaths) {
   await pushToEgnyte('Rework In', `Material_Hub_Rework_In_${row.id}`, html, attachments);
 }
 
-module.exports = { sendRawInReport, sendRawOutReport, sendReworkOutReport, sendReworkInReport };
+/**
+ * Uploads the Waste report to Egnyte. Waste submissions carry no images.
+ * @param {Object} row - Waste record
+ * @returns {Promise<void>}
+ */
+async function sendWasteReport(row) {
+  const html = buildWasteHtml(row);
+  await pushToEgnyte('Waste', `Material_Hub_Waste_${row.id}`, html, []);
+}
+
+module.exports = { sendRawInReport, sendRawOutReport, sendReworkOutReport, sendReworkInReport, sendWasteReport };

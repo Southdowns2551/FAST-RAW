@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Purpose:** PWA for Material Management Services (Raw in/out, Rework in/out, Internal rework), with backend API and MySQL storage.
+**Purpose:** PWA for Material Management Services (Raw in/out, Rework in/out, Internal rework, Waste), with backend API and MySQL storage.
 
 **Business goals:**
 - Track material flows via mobile/desktop PWA
@@ -13,7 +13,7 @@
 
 ## Architecture
 
-- **Frontend:** Static PWA (HTML/CSS/JS), 5 tabs
+- **Frontend:** Static PWA (HTML/CSS/JS); home grid of 7 sections (Raw In, Raw Out, Rework Out, Rework In, Internal Rework, Waste, Portal) plus admin-only Settings
 - **Backend:** Node.js Express API (`server/`)
 - **Database:** MySQL 8.4 on sab005 (Docker)
 - **Data flow:** PWA → API (HTTPS via nginx-proxy) → MySQL
@@ -47,6 +47,9 @@
 | /api/rework-in | POST | Submit Rework In record with load images (uploads report ZIP to Egnyte) |
 | /api/rework-in | GET | List recent Rework In submissions |
 | /api/rework-in/:id/email-report | POST | Re-send Rework In one-page report |
+| /api/waste | POST | Submit Waste record (uploads report ZIP to Egnyte); body `{ waste_date, shift, department, waste_type, kg }` |
+| /api/waste | GET | List recent Waste submissions |
+| /api/waste/:id/email-report | POST | Re-send Waste one-page report |
 | /api/settings/app/:key | GET | Read app setting (e.g. `anpr_key`); returns `{ value }` |
 | /api/settings/app/:key | PUT | Upsert app setting; body `{ value }`; returns `{ key, value }` |
 | /api/settings/backup | GET | Export all settings as JSON (suppliers, transporters, grades, masterbatch_grades, rework_grades, reasons, app_settings) |
@@ -59,9 +62,8 @@
 | /api/users | POST | Create user (admin only); body `{ username, password, display_name, role }` |
 | /api/users/:id | DELETE | Delete user (admin only, cannot delete self) |
 | /api/users/:id/password | PUT | Reset user password (admin only); body `{ password }` |
-| /api/portal/submissions | GET | Paginated, filterable listing across all 4 submission tables; query params: `type`, `from`, `to`, `supplier`, `grade`, `page`, `limit` |
+| /api/portal/submissions | GET | Paginated, filterable listing across all 5 submission tables; query params: `type`, `from`, `to`, `supplier`, `grade`, `department` (waste only, exact match), `page`, `limit`. When waste is in scope the response also carries `waste_totals: { total_kg, by_department: [{ department, total_kg, count }] }` summed over the whole filtered period |
 | /api/portal/submissions/:type/:id | GET | Single submission detail (all fields) |
-| /api/portal/submissions/:type/:id/pdf | GET | Generate and download PDF report for a submission |
 | /api/portal/images/:type/:id/:filename | GET | Serve load/invoice images for a submission |
 
 ---
@@ -206,7 +208,7 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 **Docker with HTTPS (recommended):**
 ```bash
 # 1. Create server/.env (DB + Egnyte from Credentials section above)
-# 2. Run migrations on MySQL (001_init.sql through 015_invoice_images_array.sql)
+# 2. Run migrations on MySQL (001_init.sql through 016_waste.sql)
 # 3. Ensure app-network exists: docker network create app-network
 ./deploy.sh --https
 ```
@@ -288,3 +290,8 @@ Backups are saved as `backups/material-hub-settings-YYYYMMDD-HHMMSS.json`. Add `
 | 2026-06-25 | Egnyte layout flattened: zips now land directly in `/Shared/API - Material Hub` (removed the per-type and `YYYY-MM` month subfolders) so reports are visible at the folder root; type/id/timestamp remain in the filename. `egnyte.js` no longer forces a month subfolder; `email.js` calls `pushToEgnyte` with no subfolder. |
 | 2026-06-25 | Egnyte path corrected + structure restored: base path moved to existing `/Shared/IP - Device Reports/API - Material Hub` (the earlier `/Shared/API - Material Hub` was an auto-created stray folder, which is why uploads appeared "missing"). Restored per-type + `YYYY-MM` month subfolders (e.g. `Rework Out/2026-06/`) per request. Existing id=53 zip migrated to the corrected location and stray folder removed. |
 | 2026-06-25 | Email delivery removed: reports are no longer emailed to reports@italpac.co.za — they are now pushed only to Egnyte. `email.js` rewritten to drop nodemailer/SMTP and only build + upload the report ZIP (exported `send*Report` function names kept so routes/portal re-send are unchanged). Removed `nodemailer` dependency and SMTP block from `.env.example`. SMTP credentials retained in this doc for reference only. |
+| 2026-06-25 | UI re-aligned to match the FAST app design system: single corporate blue `#1B4F8A` (header, buttons, icons, section titles) replacing the navy/steel-blue split; page surface `#F4F6F9`, text `#1A1A2E`, muted `#6B7A99`, border `#D8E0EE`, success `#27AE60`; switched from Outfit/Source Sans (Google Fonts) to the native system font stack (Google Fonts `<link>`s removed); home grid tiles now square (`aspect-ratio:1`, 20px radius) with plain enlarged blue icons (removed the `--icon-bg` rounded-square icon boxes); tab panels restyled as FAST cards (14px radius, soft shadow, no accent top border) with uppercase blue section titles; inputs are filled light-gray (`--input-bg`) with 12px radius and blue focus ring; secondary buttons are blue outline on light fill; header tagline removed; all steel-blue/warm/navy color tokens replaced; manifest + meta theme-color set to `#1B4F8A`. SW cache v51. |
+| 2026-08-06 | Portal Raw In images fix: `UPLOAD_DIR_MAP` in `server/routes/portal.js` was missing `raw_in: 'raw-in'`, so `/api/portal/images/raw_in/...` returned 404 "No images for this type" while files existed under `uploads/raw-in/{id}/`. Added the map entry; no frontend/DB changes. |
+| 2026-08-08 | Waste section: new "Waste" home tile and form capturing date, shift (Day/Night), department (Extrusion/Printing/Slitting/Bagging), an Extrusion-only Waste/Lumps type, kg, and the logged-in user as "Completed by". Unlike the other forms there is no GPS Start step or image capture — all fields are visible immediately. New `waste_submissions` table (migration 016); `server/routes/waste.js` mounted at `/api/waste`; `buildWasteHtml()` in reportHtml.js and `sendWasteReport()` in email.js push a report ZIP to the Egnyte `Waste/YYYY-MM` folder. Registered in the Portal (`waste` type, teal badge, department/shift/kg cards, dedicated detail view); the portal listing UNION was refactored into a `listSelect(type)` helper so tables with differing columns supply NULL aliases, and `shift`/`kg` were added to the shared column set. `completed_by` is set server-side from the session, not the client. The selected date is stored in `started_at` at 00:00:00 so portal date filters and ordering work unchanged. SW cache v52. |
+| 2026-08-08 | Portal PDF export removed: the "Download PDF" button and its modal footer, the `downloadPdf()` handler, the `.portal-modal-footer` CSS rule, the `GET /api/portal/submissions/:type/:id/pdf` route (plus its now-dead `HTML_BUILDERS` map and `reportHtml` import) and the `html-pdf-node` dependency. The feature never worked in the deployed image: `html-pdf-node@1.0.8` pulls `puppeteer@10.4.0`, which downloads a glibc Chromium build into the Alpine/musl API image, so every request failed with `Failed to launch the browser process ... ENOENT` (confirmed via `ldd`: missing `/lib64/ld-linux-x86-64.so.2` plus ~20 shared libraries). Removing it drops the unusable 400MB Chromium — API image 667MB to 212MB, `node_modules` 450MB to 30MB. Reports remain available as HTML inside the Egnyte report ZIPs, and `reportHtml.js` builders are unchanged since email.js still uses them. SW cache v53. |
+| 2026-08-08 | Portal filter fixes and waste totals: the From/To date inputs collapsed to empty pills on iOS because `.portal-filter-row` was a flex row with `min-width: 0` groups and `input[type="date"]` has almost no intrinsic width once `-webkit-appearance: none` is applied — the filter rows are now a 2-column CSS grid (4-column at 600px+) with full-width inputs and a `.portal-filter-span-2` helper. Added a Department filter that appears only when Type is Waste (Supplier and Grade are hidden and cleared in that mode, and vice versa, so a stale value cannot silently narrow the query); new `department` query param on `/api/portal/submissions`, guarded with `1 = 0` for non-waste types. The listing response now carries `waste_totals` (grand total plus per-department `SUM(kg)`/count over the whole filtered period, not just the current page), rendered as a summary bar above the results. SW cache v54. |
