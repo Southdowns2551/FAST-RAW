@@ -3,7 +3,7 @@
  * Enables offline caching and installability.
  */
 
-const CACHE_NAME = 'material-hub-v55';
+const CACHE_NAME = 'material-hub-v56';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -58,14 +58,20 @@ self.addEventListener('message', (event) => {
 
 /**
  * Fetch event: network-first with cache update and fallback.
+ * Asset requests bypass the HTTP cache so a stale browser copy can never pin
+ * clients to old code. Navigations keep the original request because a
+ * navigate-mode Request cannot be reconstructed.
  * @param {FetchEvent} event
  */
 self.addEventListener('fetch', (event) => {
   if (event.request.mode !== 'navigate' && !event.request.url.match(/\.(html|css|js|json|png|svg)$/)) {
     return;
   }
+  const request = event.request.mode === 'navigate'
+    ? event.request
+    : new Request(event.request, { cache: 'no-store' });
   event.respondWith(
-    fetch(event.request).then((response) => {
+    fetch(request).then((response) => {
       const clone = response.clone();
       caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
       return response;
