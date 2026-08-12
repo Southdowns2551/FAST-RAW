@@ -14,7 +14,7 @@ const { sendWasteReport } = require('../email');
 const router = express.Router();
 
 const SHIFTS = ['Day Shift', 'Night Shift'];
-const DEPARTMENTS = ['Extrusion', 'Printing', 'Slitting', 'Bagging'];
+const DEPARTMENTS = ['Extrusion', 'Printing', 'Slitting', 'Bagging', 'Off-Cuts'];
 const WASTE_TYPES = ['Waste', 'Lumps'];
 const WASTE_TYPE_DEPARTMENT = 'Extrusion';
 
