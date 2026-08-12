@@ -1027,6 +1027,12 @@ body {
   font-weight: 600;
 }
 
+.portal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
 .portal-results {
   min-height: 100px;
 }
@@ -1595,5 +1601,104 @@ body {
 
   .portal-filter-span-2 {
     grid-column: span 2;
+  }
+}
+
+/* ── Print report ── */
+
+.portal-print-report {
+  display: none;
+}
+
+@media print {
+  /* The report is a direct child of body, so everything else can be hidden
+     in one rule rather than unwinding each nested container. */
+  body > *:not(#portal-print-report) {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    margin: 0;
+  }
+
+  .portal-print-report {
+    display: block;
+    color: #000;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  .print-header h1 {
+    font-size: 15pt;
+    margin: 0 0 6pt;
+  }
+
+  .print-filters {
+    margin: 0 0 4pt;
+    font-size: 9.5pt;
+    font-weight: bold;
+  }
+
+  .print-meta {
+    margin: 0 0 8pt;
+    font-size: 9pt;
+    color: #444;
+  }
+
+  .print-warning {
+    margin: 0 0 8pt;
+    font-size: 9pt;
+    font-weight: bold;
+  }
+
+  .print-totals {
+    margin: 0 0 10pt;
+    padding: 6pt 8pt;
+    border: 1px solid #999;
+    font-size: 10pt;
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #999;
+    padding: 3pt 5pt;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+  }
+
+  .print-table th {
+    background: #eee;
+    font-weight: bold;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-table .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .print-table tfoot td {
+    font-weight: bold;
+  }
+
+  .print-table thead {
+    display: table-header-group;
+  }
+
+  .print-table tr {
+    break-inside: avoid;
   }
 }

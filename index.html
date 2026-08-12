@@ -711,6 +711,9 @@
         </div>
       </div>
       <div id="portal-summary" class="portal-summary hidden"></div>
+      <div id="portal-actions" class="portal-actions hidden">
+        <button type="button" id="portal-print" class="btn-secondary">Print / Save as PDF</button>
+      </div>
       <div id="portal-results" class="portal-results">
         <p class="portal-empty">Use the filters above to search submissions.</p>
       </div>
@@ -778,6 +781,9 @@
       <span>Home</span>
     </button>
   </nav>
+
+  <!-- Populated on demand by portal.js; only this element is visible when printing. -->
+  <div id="portal-print-report" class="portal-print-report"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="config.js"></script>

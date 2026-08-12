@@ -37,6 +37,9 @@
     waste: 'portal-badge-teal'
   };
 
+  const PRINT_PAGE_SIZE = 100;
+  const MAX_PRINT_PAGES = 20;
+
   let currentPage = 1;
   let currentTotal = 0;
   let currentLimit = 25;
@@ -59,6 +62,9 @@
   const supplierGroup = document.getElementById('portal-supplier-group');
   const gradeGroup = document.getElementById('portal-grade-group');
   const summaryEl = document.getElementById('portal-summary');
+  const actionsEl = document.getElementById('portal-actions');
+  const printBtn = document.getElementById('portal-print');
+  const printReportEl = document.getElementById('portal-print-report');
 
   const modal = document.getElementById('portal-detail-modal');
   const modalTitle = document.getElementById('portal-detail-title');
@@ -209,6 +215,178 @@
   }
 
   /**
+   * Describes the active filters in plain language for the report header.
+   * @returns {string}
+   */
+  function describeFilters() {
+    const parts = [];
+    const typeVal = typeSelect?.value || 'all';
+    parts.push('Type: ' + (typeVal === 'all' ? 'All' : (TYPE_LABELS[typeVal] || typeVal)));
+
+    const from = fromInput?.value;
+    const to = toInput?.value;
+    if (from && to) parts.push(`Period: ${from} to ${to}`);
+    else if (from) parts.push(`Period: from ${from}`);
+    else if (to) parts.push(`Period: up to ${to}`);
+    else parts.push('Period: all dates');
+
+    if (departmentSelect?.value) parts.push('Department: ' + departmentSelect.value);
+    if (supplierInput?.value?.trim()) parts.push('Name: ' + supplierInput.value.trim());
+    if (gradeSelect?.value) parts.push('Grade: ' + gradeSelect.value);
+    return parts.join('  |  ');
+  }
+
+  /**
+   * Builds the printable report markup for a full result set.
+   * Waste-only searches get a waste-specific column set and a total row.
+   * @param {Array} rows - every row matching the filters
+   * @param {{total_kg: number, by_department: Array}|null} totals
+   * @param {{total: number, truncated: boolean}} meta
+   * @returns {string} HTML for the print container
+   */
+  function buildPrintReport(rows, totals, meta) {
+    const user = window.MATERIAL_HUB_AUTH?.getUser();
+    const wasteOnly = rows.length > 0 && rows.every((r) => r.type === 'waste');
+
+    const totalsBlock = (wasteOnly && totals && totals.by_department.length > 0)
+      ? `<div class="print-totals">
+          <div><strong>Total waste: ${fmtKg(totals.total_kg)} kg</strong></div>
+          ${totals.by_department.length > 1
+            ? '<div>' + totals.by_department
+                .map((d) => `${esc(d.department)}: ${fmtKg(d.total_kg)} kg`).join(' &nbsp;•&nbsp; ') + '</div>'
+            : ''}
+        </div>`
+      : '';
+
+    const head = wasteOnly
+      ? '<tr><th>Date</th><th>Shift</th><th>Department</th><th class="num">Kg</th><th>Completed by</th><th class="num">Ref</th></tr>'
+      : '<tr><th>Date</th><th>Type</th><th>Entity</th><th>Vehicle</th><th>Grades</th><th>Invoice</th><th>Checked by</th><th class="num">Ref</th></tr>';
+
+    const body = rows.map((row) => wasteOnly
+      ? `<tr>
+          <td>${fmtDateOnly(row.started_at)}</td>
+          <td>${esc(row.shift || '—')}</td>
+          <td>${esc(row.entity_name || '—')}</td>
+          <td class="num">${row.kg == null ? '—' : fmtKg(row.kg)}</td>
+          <td>${esc(row.checked_by || '—')}</td>
+          <td class="num">#${row.id}</td>
+        </tr>`
+      : `<tr>
+          <td>${row.type === 'waste' ? fmtDateOnly(row.started_at) : fmtDate(row.started_at)}</td>
+          <td>${esc(TYPE_LABELS[row.type] || row.type)}</td>
+          <td>${esc(row.entity_name || '—')}</td>
+          <td>${esc(row.vehicle_registration || '—')}</td>
+          <td>${esc(fmtGrades(row.grades_json))}</td>
+          <td>${esc(row.invoice_number || '—')}</td>
+          <td>${esc(row.checked_by || '—')}</td>
+          <td class="num">#${row.id}</td>
+        </tr>`).join('');
+
+    const foot = (wasteOnly && totals)
+      ? `<tfoot><tr><td colspan="3">Total (${rows.length} ${rows.length === 1 ? 'entry' : 'entries'})</td>
+         <td class="num"><strong>${fmtKg(totals.total_kg)} kg</strong></td><td></td><td></td></tr></tfoot>`
+      : '';
+
+    const truncatedNote = meta.truncated
+      ? `<p class="print-warning">Showing the first ${rows.length} of ${meta.total} matching records. Narrow the filters to print the rest.</p>`
+      : '';
+
+    return `
+      <div class="print-header">
+        <h1>Material Hub — Submissions Report</h1>
+        <p class="print-filters">${esc(describeFilters())}</p>
+        <p class="print-meta">
+          ${rows.length} of ${meta.total} record${meta.total === 1 ? '' : 's'}
+          &nbsp;•&nbsp; Generated ${fmtDate(new Date().toISOString())}
+          ${user ? '&nbsp;•&nbsp; By ' + esc(user.display_name || user.username) : ''}
+        </p>
+        ${truncatedNote}
+        ${totalsBlock}
+      </div>
+      <table class="print-table">
+        <thead>${head}</thead>
+        <tbody>${body}</tbody>
+        ${foot}
+      </table>`;
+  }
+
+  /**
+   * Fetches every matching row, renders the report and opens the print dialog.
+   * @sideeffect Performs several API requests, writes to the print container
+   *   and invokes window.print().
+   */
+  async function handlePrint() {
+    if (!printReportEl || !printBtn) return;
+    const originalLabel = printBtn.textContent;
+    printBtn.disabled = true;
+    printBtn.textContent = 'Preparing...';
+    try {
+      const { rows, total, waste_totals: totals, truncated } = await fetchAllRows();
+      if (rows.length === 0) {
+        alert('There are no results to print.');
+        return;
+      }
+      printReportEl.innerHTML = buildPrintReport(rows, totals, { total, truncated });
+      window.print();
+    } catch (err) {
+      alert('Could not build the report: ' + (err.message || 'unknown error'));
+    } finally {
+      printBtn.disabled = false;
+      printBtn.textContent = originalLabel;
+    }
+  }
+
+  /**
+   * Builds the query string for the current filter state, without paging.
+   * Shared by the listing and the print report so the two cannot drift apart.
+   * @returns {URLSearchParams}
+   */
+  function buildFilterParams() {
+    const params = new URLSearchParams();
+    if (typeSelect?.value && typeSelect.value !== 'all') params.set('type', typeSelect.value);
+    if (fromInput?.value) params.set('from', fromInput.value);
+    if (toInput?.value) params.set('to', toInput.value);
+    if (supplierInput?.value?.trim()) params.set('supplier', supplierInput.value.trim());
+    if (gradeSelect?.value) params.set('grade', gradeSelect.value);
+    if (departmentSelect?.value) params.set('department', departmentSelect.value);
+    return params;
+  }
+
+  /**
+   * Fetches every row matching the current filters by walking the pages.
+   * The API caps limit at 100, so large result sets need several requests.
+   * @returns {Promise<{rows: Array, total: number, waste_totals: Object|null, truncated: boolean}>}
+   * @throws {Error} when any page request fails
+   */
+  async function fetchAllRows() {
+    const rows = [];
+    let total = 0;
+    let wasteTotals = null;
+    let page = 1;
+
+    while (page <= MAX_PRINT_PAGES) {
+      const params = buildFilterParams();
+      params.set('page', String(page));
+      params.set('limit', String(PRINT_PAGE_SIZE));
+
+      const res = await apiFetch(`${API}/api/portal/submissions?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch results');
+      const data = await res.json();
+
+      if (page === 1) {
+        total = data.total;
+        wasteTotals = data.waste_totals;
+      }
+      rows.push(...(data.rows || []));
+
+      if (!data.rows || data.rows.length < PRINT_PAGE_SIZE || rows.length >= total) break;
+      page += 1;
+    }
+
+    return { rows, total, waste_totals: wasteTotals, truncated: rows.length < total };
+  }
+
+  /**
    * Fetches submissions from the portal API with current filter state.
    * @param {number} page
    */
@@ -217,15 +395,9 @@
     currentPage = page;
     resultsEl.innerHTML = '<p class="portal-loading">Loading...</p>';
 
-    const params = new URLSearchParams();
+    const params = buildFilterParams();
     params.set('page', String(page));
     params.set('limit', String(currentLimit));
-    if (typeSelect?.value && typeSelect.value !== 'all') params.set('type', typeSelect.value);
-    if (fromInput?.value) params.set('from', fromInput.value);
-    if (toInput?.value) params.set('to', toInput.value);
-    if (supplierInput?.value?.trim()) params.set('supplier', supplierInput.value.trim());
-    if (gradeSelect?.value) params.set('grade', gradeSelect.value);
-    if (departmentSelect?.value) params.set('department', departmentSelect.value);
 
     try {
       const res = await apiFetch(`${API}/api/portal/submissions?${params}`);
@@ -235,10 +407,12 @@
       renderResults(data.rows);
       renderSummary(data.waste_totals);
       renderPagination(data.page, data.limit, data.total);
+      if (actionsEl) actionsEl.classList.toggle('hidden', data.total === 0);
     } catch (err) {
       resultsEl.innerHTML = '<p class="portal-empty">Error loading submissions. Please try again.</p>';
       renderSummary(null);
       if (paginationEl) paginationEl.classList.add('hidden');
+      if (actionsEl) actionsEl.classList.add('hidden');
     }
   }
 
@@ -488,6 +662,7 @@
   }
 
   if (typeSelect) typeSelect.addEventListener('change', syncFilterVisibility);
+  if (printBtn) printBtn.addEventListener('click', handlePrint);
   if (searchBtn) searchBtn.addEventListener('click', () => fetchSubmissions(1));
   if (prevBtn) prevBtn.addEventListener('click', () => { if (currentPage > 1) fetchSubmissions(currentPage - 1); });
   if (nextBtn) nextBtn.addEventListener('click', () => { const tp = Math.ceil(currentTotal / currentLimit); if (currentPage < tp) fetchSubmissions(currentPage + 1); });
