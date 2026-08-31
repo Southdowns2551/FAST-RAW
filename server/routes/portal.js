@@ -11,7 +11,8 @@
  *   to       - end date YYYY-MM-DD (inclusive)
  *   supplier - filter by supplier/customer/recycler name (partial match)
  *   grade    - filter by grade name in JSON column
- *   department - waste only; exact department match
+ *   department - waste only; exact reporting-department match. "Lumps" selects
+ *                Extrusion lump rows; "Extrusion" excludes them.
  *   page     - page number (default 1)
  *   limit    - rows per page (default 25, max 100)
  */
@@ -39,6 +40,12 @@ const UPLOAD_DIR_MAP = {
   rework_out: 'rework-out',
   rework_in: 'rework-in'
 };
+
+// Extrusion lumps are reported as their own department so lump tonnage can be
+// tracked separately. Shared by the department filter, the listing label and
+// the totals grouping so the three cannot drift apart.
+const WASTE_DEPT_LABEL =
+  "CASE WHEN department = 'Extrusion' AND waste_type = 'Lumps' THEN 'Lumps' ELSE department END";
 
 /**
  * Builds a WHERE clause fragment and params for a single table query.
@@ -71,7 +78,7 @@ function buildWhereClause(type, filters) {
       // Only waste rows have a department, so the filter excludes everything else.
       conditions.push('1 = 0');
     } else {
-      conditions.push('department = ?');
+      conditions.push(`${WASTE_DEPT_LABEL} = ?`);
       params.push(filters.department);
     }
   }
@@ -100,7 +107,7 @@ function buildWhereClause(type, filters) {
 function entityCol(type) {
   if (type === 'raw_in') return 'supplier AS entity_name';
   if (type === 'raw_out') return 'customer_name AS entity_name';
-  if (type === 'waste') return 'department AS entity_name';
+  if (type === 'waste') return `${WASTE_DEPT_LABEL} AS entity_name`;
   return 'recycler_name AS entity_name';
 }
 
@@ -132,18 +139,23 @@ function listSelect(type) {
 }
 
 /**
- * Sums waste kg for the current filters, grouped by department.
- * Covers the whole filtered period rather than just the requested page.
+ * Sums waste kg for the current filters, grouped by reporting department.
+ * Extrusion lumps form their own "Lumps" bucket, so the Extrusion figure
+ * covers non-lump extrusion waste only. Covers the whole filtered period
+ * rather than just the requested page.
  * @param {Object} filters - same filter object used for the listing
  * @returns {Promise<{total_kg: number, by_department: Array<{department: string, total_kg: number, count: number}>}>}
  */
 async function fetchWasteTotals(filters) {
   const { where, params } = buildWhereClause('waste', filters);
+  // ORDER BY uses the column position: MySQL resolves ORDER BY identifiers
+  // against select aliases first, so repeating the expression there would bind
+  // "department" to this query's own alias.
   const [rows] = await pool.query(
-    `SELECT department, SUM(kg) AS total_kg, COUNT(*) AS cnt
+    `SELECT ${WASTE_DEPT_LABEL} AS department, SUM(kg) AS total_kg, COUNT(*) AS cnt
      FROM waste_submissions ${where}
-     GROUP BY department
-     ORDER BY department`,
+     GROUP BY ${WASTE_DEPT_LABEL}
+     ORDER BY 1`,
     params
   );
   // DECIMAL columns come back as strings from mysql2.
