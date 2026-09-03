@@ -44,7 +44,7 @@
   }
 
   /**
-   * Shows or hides the Waste/Lumps dropdown based on the selected department.
+   * Shows or hides the waste type dropdown based on the selected department.
    * Clears and un-requires the field when the department is not Extrusion.
    * @sideeffect Toggles visibility and resets the type select.
    */
@@ -86,7 +86,7 @@
     if (!shift) return alert('Please select a shift.');
     if (!department) return alert('Please select a department.');
     if (department === WASTE_TYPE_DEPARTMENT && !wasteType) {
-      return alert('Please select Waste or Lumps.');
+      return alert('Please select a type.');
     }
     const kg = Number(kgRaw);
     if (kgRaw === '' || !isFinite(kg) || kg < 0) {

@@ -11,8 +11,9 @@
  *   to       - end date YYYY-MM-DD (inclusive)
  *   supplier - filter by supplier/customer/recycler name (partial match)
  *   grade    - filter by grade name in JSON column
- *   department - waste only; exact reporting-department match. "Lumps" selects
- *                Extrusion lump rows; "Extrusion" excludes them.
+ *   department - waste only; exact reporting-department match. "Lumps" and
+ *                "Trimmings" select those Extrusion rows; "Extrusion"
+ *                excludes both.
  *   page     - page number (default 1)
  *   limit    - rows per page (default 25, max 100)
  */
@@ -41,11 +42,13 @@ const UPLOAD_DIR_MAP = {
   rework_in: 'rework-in'
 };
 
-// Extrusion lumps are reported as their own department so lump tonnage can be
-// tracked separately. Shared by the department filter, the listing label and
-// the totals grouping so the three cannot drift apart.
+// Extrusion lumps and trimmings are reported as their own departments so each
+// can be tracked separately; plain Extrusion waste keeps the department name.
+// Shared by the department filter, the listing label and the totals grouping so
+// the three cannot drift apart.
 const WASTE_DEPT_LABEL =
-  "CASE WHEN department = 'Extrusion' AND waste_type = 'Lumps' THEN 'Lumps' ELSE department END";
+  "CASE WHEN department = 'Extrusion' AND waste_type IN ('Lumps', 'Trimmings') "
+  + "THEN waste_type ELSE department END";
 
 /**
  * Builds a WHERE clause fragment and params for a single table query.
@@ -140,8 +143,8 @@ function listSelect(type) {
 
 /**
  * Sums waste kg for the current filters, grouped by reporting department.
- * Extrusion lumps form their own "Lumps" bucket, so the Extrusion figure
- * covers non-lump extrusion waste only. Covers the whole filtered period
+ * Extrusion lumps and trimmings form their own buckets, so the Extrusion
+ * figure covers plain extrusion waste only. Covers the whole filtered period
  * rather than just the requested page.
  * @param {Object} filters - same filter object used for the listing
  * @returns {Promise<{total_kg: number, by_department: Array<{department: string, total_kg: number, count: number}>}>}

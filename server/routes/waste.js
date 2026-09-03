@@ -15,7 +15,7 @@ const router = express.Router();
 
 const SHIFTS = ['Day Shift', 'Night Shift'];
 const DEPARTMENTS = ['Extrusion', 'Printing', 'Slitting', 'Bagging', 'Off-Cuts'];
-const WASTE_TYPES = ['Waste', 'Lumps'];
+const WASTE_TYPES = ['Waste', 'Lumps', 'Trimmings'];
 const WASTE_TYPE_DEPARTMENT = 'Extrusion';
 
 /**
@@ -70,7 +70,7 @@ router.post('/', async (req, res) => {
     let wasteType = null;
     if (department === WASTE_TYPE_DEPARTMENT) {
       if (!WASTE_TYPES.includes(waste_type)) {
-        return res.status(400).json({ error: 'Waste or Lumps must be selected for Extrusion' });
+        return res.status(400).json({ error: 'A valid waste type must be selected for Extrusion' });
       }
       wasteType = waste_type;
     }
